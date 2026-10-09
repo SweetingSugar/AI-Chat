@@ -6,6 +6,9 @@ public enum ErrorCode {
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Authentication is required"),
     FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "Permission denied"),
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request validation failed"),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid username or password"),
+    RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "Resource not found"),
+    RESOURCE_CONFLICT(HttpStatus.CONFLICT, "RESOURCE_CONFLICT", "Resource already exists"),
     CHAT_CONVERSATION_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_CONVERSATION_NOT_FOUND", "Conversation not found"),
     AI_PROVIDER_ERROR(HttpStatus.BAD_GATEWAY, "AI_PROVIDER_ERROR", "AI provider request failed"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Internal server error");

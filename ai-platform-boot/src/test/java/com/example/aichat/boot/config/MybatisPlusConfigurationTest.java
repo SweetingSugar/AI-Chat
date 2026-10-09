@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
+import com.example.aichat.common.config.MybatisPlusConfiguration;
 import org.junit.jupiter.api.Test;
 
 class MybatisPlusConfigurationTest {
