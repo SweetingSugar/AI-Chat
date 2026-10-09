@@ -1,0 +1,11 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  flyway:
+    enabled: false
+
+management:
+  endpoint:
+    health:
+      show-details: never
