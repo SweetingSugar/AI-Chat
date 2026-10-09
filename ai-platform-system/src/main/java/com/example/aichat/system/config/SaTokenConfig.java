@@ -37,7 +37,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
             response.setStatus(ErrorCode.UNAUTHENTICATED.httpStatus().value());
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.failure(ErrorCode.UNAUTHENTICATED)));
-        } catch (Exception ignored) { }
+        } catch (Exception ignored) {
+        }
         return null;
     }
 }

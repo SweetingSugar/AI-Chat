@@ -13,7 +13,9 @@ import com.example.aichat.system.service.UserService;
 import com.example.aichat.system.vo.LoginVO;
 import com.example.aichat.system.vo.SessionVO;
 import com.example.aichat.system.vo.UserVO;
+
 import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,13 +52,19 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout() { StpUtil.logout(); }
+    public void logout() {
+        StpUtil.logout();
+    }
 
     @Override
-    public void logoutAll() { StpUtil.logout(currentUserProvider.requireCurrentUser().id()); }
+    public void logoutAll() {
+        StpUtil.logout(currentUserProvider.requireCurrentUser().id());
+    }
 
     @Override
-    public UserVO me() { return UserVO.from(userService.getRequired(currentUserProvider.requireCurrentUser().id())); }
+    public UserVO me() {
+        return UserVO.from(userService.getRequired(currentUserProvider.requireCurrentUser().id()));
+    }
 
     @Override
     public SessionVO session() {

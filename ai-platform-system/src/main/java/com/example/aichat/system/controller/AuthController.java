@@ -54,10 +54,14 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ApiResponse<UserVO> me() { return ApiResponse.success(authService.me()); }
+    public ApiResponse<UserVO> me() {
+        return ApiResponse.success(authService.me());
+    }
 
     @GetMapping("/status")
-    public ApiResponse<SessionVO> status() { return ApiResponse.success(authService.session()); }
+    public ApiResponse<SessionVO> status() {
+        return ApiResponse.success(authService.session());
+    }
 
     @PostMapping("/password")
     public ApiResponse<Void> changePassword(@Valid @RequestBody PasswordChangeDTO request) {

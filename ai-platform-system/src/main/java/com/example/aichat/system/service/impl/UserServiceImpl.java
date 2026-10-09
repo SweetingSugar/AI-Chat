@@ -14,8 +14,10 @@ import com.example.aichat.system.mapper.UserMapper;
 import com.example.aichat.system.mapper.UserRoleMapper;
 import com.example.aichat.system.security.PasswordService;
 import com.example.aichat.system.service.UserService;
+
 import java.util.Collection;
 import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -62,7 +64,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<SysUser> list() { return userMapper.selectList(new LambdaQueryWrapper<SysUser>().orderByDesc(SysUser::getId)); }
+    public List<SysUser> list() {
+        return userMapper.selectList(new LambdaQueryWrapper<SysUser>().orderByDesc(SysUser::getId));
+    }
 
     @Override
     @Transactional
@@ -132,5 +136,7 @@ public class UserServiceImpl implements UserService {
         if (userMapper.selectCount(query) > 0) throw new BusinessException(ErrorCode.RESOURCE_CONFLICT, message);
     }
 
-    private String emptyToNull(String value) { return StringUtils.hasText(value) ? value.trim() : null; }
+    private String emptyToNull(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
+    }
 }

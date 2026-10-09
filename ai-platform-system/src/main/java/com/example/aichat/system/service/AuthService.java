@@ -7,8 +7,12 @@ import com.example.aichat.system.vo.UserVO;
 
 public interface AuthService {
     LoginVO login(LoginDTO request, String clientIp);
+
     void logout();
+
     void logoutAll();
+
     UserVO me();
+
     SessionVO session();
 }

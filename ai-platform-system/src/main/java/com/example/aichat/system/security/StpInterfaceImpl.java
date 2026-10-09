@@ -3,7 +3,9 @@ package com.example.aichat.system.security;
 import cn.dev33.satoken.stp.StpInterface;
 import com.example.aichat.system.mapper.PermissionMapper;
 import com.example.aichat.system.mapper.RoleMapper;
+
 import java.util.List;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -26,5 +28,7 @@ public class StpInterfaceImpl implements StpInterface {
         return roleMapper.findRoleCodesByUserId(asLong(loginId));
     }
 
-    private Long asLong(Object loginId) { return Long.valueOf(String.valueOf(loginId)); }
+    private Long asLong(Object loginId) {
+        return Long.valueOf(String.valueOf(loginId));
+    }
 }

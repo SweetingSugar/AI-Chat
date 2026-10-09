@@ -11,7 +11,9 @@ import com.example.aichat.system.mapper.PermissionMapper;
 import com.example.aichat.system.mapper.RolePermissionMapper;
 import com.example.aichat.system.mapper.UserRoleMapper;
 import com.example.aichat.system.service.PermissionService;
+
 import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -30,7 +32,9 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     @Override
-    public List<SysPermission> list() { return permissionMapper.selectList(new LambdaQueryWrapper<SysPermission>().orderByAsc(SysPermission::getSort, SysPermission::getId)); }
+    public List<SysPermission> list() {
+        return permissionMapper.selectList(new LambdaQueryWrapper<SysPermission>().orderByAsc(SysPermission::getSort, SysPermission::getId));
+    }
 
     @Override
     public SysPermission getRequired(Long id) {
@@ -72,7 +76,8 @@ public class PermissionServiceImpl implements PermissionService {
         if (!StringUtils.hasText(code)) return;
         LambdaQueryWrapper<SysPermission> query = new LambdaQueryWrapper<SysPermission>().eq(SysPermission::getPermissionCode, code);
         if (excludedId != null) query.ne(SysPermission::getId, excludedId);
-        if (permissionMapper.selectCount(query) > 0) throw new BusinessException(ErrorCode.RESOURCE_CONFLICT, "Permission code already exists");
+        if (permissionMapper.selectCount(query) > 0)
+            throw new BusinessException(ErrorCode.RESOURCE_CONFLICT, "Permission code already exists");
     }
 
     private SysPermission copy(PermissionDTO request, SysPermission permission) {

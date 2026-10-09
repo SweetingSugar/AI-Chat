@@ -13,8 +13,10 @@ import com.example.aichat.system.mapper.RoleMapper;
 import com.example.aichat.system.mapper.RolePermissionMapper;
 import com.example.aichat.system.mapper.UserRoleMapper;
 import com.example.aichat.system.service.RoleService;
+
 import java.util.Collection;
 import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +36,9 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<SysRole> list() { return roleMapper.selectList(new LambdaQueryWrapper<SysRole>().orderByAsc(SysRole::getSort, SysRole::getId)); }
+    public List<SysRole> list() {
+        return roleMapper.selectList(new LambdaQueryWrapper<SysRole>().orderByAsc(SysRole::getSort, SysRole::getId));
+    }
 
     @Override
     public SysRole getRequired(Long id) {
@@ -107,5 +111,7 @@ public class RoleServiceImpl implements RoleService {
         return role;
     }
 
-    private void invalidateRoleUsers(Long roleId) { userRoleMapper.findUserIdsByRoleId(roleId).forEach(StpUtil::logout); }
+    private void invalidateRoleUsers(Long roleId) {
+        userRoleMapper.findUserIdsByRoleId(roleId).forEach(StpUtil::logout);
+    }
 }

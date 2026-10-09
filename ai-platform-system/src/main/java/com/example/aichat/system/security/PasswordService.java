@@ -9,7 +9,9 @@ import org.springframework.stereotype.Service;
 public class PasswordService {
     private final PasswordEncoder passwordEncoder;
 
-    public PasswordService(PasswordEncoder passwordEncoder) { this.passwordEncoder = passwordEncoder; }
+    public PasswordService(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public String encode(String rawPassword) {
         validate(rawPassword);
