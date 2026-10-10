@@ -42,6 +42,12 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+logging:
+  level:
+    root: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+
 sa-token:
   token-name: ${SA_TOKEN_NAME:satoken}
   timeout: ${SA_TOKEN_TIMEOUT:2592000}
