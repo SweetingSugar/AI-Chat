@@ -36,26 +36,26 @@ public class UserController {
 
     @GetMapping("/{id}")
     @SaCheckPermission("system:user:read")
-    public ApiResponse<UserVO> get(@PathVariable Long id) {
+    public ApiResponse<UserVO> get(@PathVariable("id") Long id) {
         return ApiResponse.success(UserVO.from(userService.getRequired(id)));
     }
 
     @PutMapping("/{id}")
     @SaCheckPermission("system:user:update")
-    public ApiResponse<UserVO> update(@PathVariable Long id, @Valid @RequestBody UserUpdateDTO request) {
+    public ApiResponse<UserVO> update(@PathVariable("id") Long id, @Valid @RequestBody UserUpdateDTO request) {
         return ApiResponse.success(UserVO.from(userService.update(id, request)));
     }
 
     @PatchMapping("/{id}/status")
     @SaCheckPermission("system:user:update")
-    public ApiResponse<Void> updateStatus(@PathVariable Long id, @Valid @RequestBody StatusUpdateDTO request) {
+    public ApiResponse<Void> updateStatus(@PathVariable("id") Long id, @Valid @RequestBody StatusUpdateDTO request) {
         userService.updateStatus(id, request.status());
         return ApiResponse.success(null);
     }
 
     @PutMapping("/{id}/roles")
     @SaCheckPermission("system:user:assign-role")
-    public ApiResponse<Void> assignRoles(@PathVariable Long id, @Valid @RequestBody IdSetDTO request) {
+    public ApiResponse<Void> assignRoles(@PathVariable("id") Long id, @Valid @RequestBody IdSetDTO request) {
         userService.assignRoles(id, request.ids());
         return ApiResponse.success(null);
     }

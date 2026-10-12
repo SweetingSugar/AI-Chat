@@ -35,7 +35,7 @@ public class PermissionController {
 
     @GetMapping("/{id}")
     @SaCheckPermission("system:permission:read")
-    public ApiResponse<SysPermission> get(@PathVariable Long id) {
+    public ApiResponse<SysPermission> get(@PathVariable("id") Long id) {
         return ApiResponse.success(permissionService.getRequired(id));
     }
 
@@ -47,13 +47,13 @@ public class PermissionController {
 
     @PutMapping("/{id}")
     @SaCheckPermission("system:permission:update")
-    public ApiResponse<SysPermission> update(@PathVariable Long id, @Valid @RequestBody PermissionDTO request) {
+    public ApiResponse<SysPermission> update(@PathVariable("id") Long id, @Valid @RequestBody PermissionDTO request) {
         return ApiResponse.success(permissionService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     @SaCheckPermission("system:permission:delete")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable("id") Long id) {
         permissionService.delete(id);
         return ApiResponse.success(null);
     }

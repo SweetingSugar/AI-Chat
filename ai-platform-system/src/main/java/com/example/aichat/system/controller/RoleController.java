@@ -36,7 +36,7 @@ public class RoleController {
 
     @GetMapping("/{id}")
     @SaCheckPermission("system:role:read")
-    public ApiResponse<SysRole> get(@PathVariable Long id) {
+    public ApiResponse<SysRole> get(@PathVariable("id") Long id) {
         return ApiResponse.success(roleService.getRequired(id));
     }
 
@@ -48,20 +48,20 @@ public class RoleController {
 
     @PutMapping("/{id}")
     @SaCheckPermission("system:role:update")
-    public ApiResponse<SysRole> update(@PathVariable Long id, @Valid @RequestBody RoleDTO request) {
+    public ApiResponse<SysRole> update(@PathVariable("id") Long id, @Valid @RequestBody RoleDTO request) {
         return ApiResponse.success(roleService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     @SaCheckPermission("system:role:delete")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable("id") Long id) {
         roleService.delete(id);
         return ApiResponse.success(null);
     }
 
     @PutMapping("/{id}/permissions")
     @SaCheckPermission("system:role:assign-permission")
-    public ApiResponse<Void> assignPermissions(@PathVariable Long id, @Valid @RequestBody IdSetDTO request) {
+    public ApiResponse<Void> assignPermissions(@PathVariable("id") Long id, @Valid @RequestBody IdSetDTO request) {
         roleService.assignPermissions(id, request.ids());
         return ApiResponse.success(null);
     }
