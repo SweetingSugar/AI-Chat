@@ -7,6 +7,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.context.SaHolder;
 import com.example.aichat.common.api.ApiResponse;
 import com.example.aichat.common.error.ErrorCode;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +24,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 .addExclude("/api/auth/login", "/api/auth/register", "/api/auth/status")
                 .setBeforeAuth(obj -> SaRouter.match("OPTIONS".equalsIgnoreCase(SaHolder.getRequest().getMethod())).stop())
                 .setAuth(obj -> StpUtil.checkLogin())
-                .setError(error -> writeUnauthorized(error, objectMapper));
+                .setError(error -> writeUnauthorized(objectMapper));
     }
 
     @Override
@@ -31,14 +32,14 @@ public class SaTokenConfig implements WebMvcConfigurer {
         registry.addInterceptor(new SaInterceptor()).addPathPatterns("/api/**");
     }
 
-    private Object writeUnauthorized(Throwable error, ObjectMapper objectMapper) {
+    private String writeUnauthorized(ObjectMapper objectMapper) {
+        HttpServletResponse response = (HttpServletResponse) SaHolder.getResponse().getSource();
+        response.setStatus(ErrorCode.UNAUTHENTICATED.httpStatus().value());
+        response.setContentType("application/json;charset=UTF-8");
         try {
-            HttpServletResponse response = (HttpServletResponse) cn.dev33.satoken.context.SaHolder.getResponse().getSource();
-            response.setStatus(ErrorCode.UNAUTHENTICATED.httpStatus().value());
-            response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.failure(ErrorCode.UNAUTHENTICATED)));
-        } catch (Exception ignored) {
+            return objectMapper.writeValueAsString(ApiResponse.failure(ErrorCode.UNAUTHENTICATED));
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to serialize the unauthenticated response", exception);
         }
-        return null;
     }
 }
