@@ -108,8 +108,8 @@ public class AiProviderServiceImpl implements AiProviderService {
         provider.setProviderName(request.providerName().trim());
         provider.setProviderType(request.providerType());
         provider.setBaseUrl(request.baseUrl().trim());
-        provider.setConnectTimeout(request.connectTimeout() == null ? 10 : request.connectTimeout());
-        provider.setReadTimeout(request.readTimeout() == null ? 60 : request.readTimeout());
+        provider.setConnectTimeout(request.connectTimeout());
+        provider.setReadTimeout(request.readTimeout());
         provider.setStatus(request.status() == null ? 1 : request.status());
         provider.setSort(request.sort() == null ? 0 : request.sort());
         provider.setRemark(StringUtils.hasText(request.remark()) ? request.remark().trim() : null);
