@@ -34,7 +34,7 @@ public class AiModelController {
 
     @GetMapping("/{id}")
     @SaCheckPermission("ai:model:read")
-    public ApiResponse<AiModelManagementDTO> get(@PathVariable Long id) {
+    public ApiResponse<AiModelManagementDTO> get(@PathVariable("id") Long id) {
         return ApiResponse.success(modelService.getManagementRequired(id));
     }
 
@@ -46,14 +46,14 @@ public class AiModelController {
 
     @PutMapping("/{id}")
     @SaCheckPermission("ai:model:update")
-    public ApiResponse<AiModelManagementDTO> update(@PathVariable Long id,
+    public ApiResponse<AiModelManagementDTO> update(@PathVariable("id") Long id,
                                                       @Valid @RequestBody AiModelUpsertRequest request) {
         return ApiResponse.success(modelService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     @SaCheckPermission("ai:model:delete")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable("id") Long id) {
         modelService.delete(id);
         return ApiResponse.success(null);
     }

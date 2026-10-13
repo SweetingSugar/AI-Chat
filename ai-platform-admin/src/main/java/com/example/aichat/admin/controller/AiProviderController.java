@@ -34,7 +34,7 @@ public class AiProviderController {
 
     @GetMapping("/{id}")
     @SaCheckPermission("ai:provider:read")
-    public ApiResponse<AiProviderManagementDTO> get(@PathVariable Long id) {
+    public ApiResponse<AiProviderManagementDTO> get(@PathVariable("id") Long id) {
         return ApiResponse.success(providerService.getManagementRequired(id));
     }
 
@@ -46,14 +46,14 @@ public class AiProviderController {
 
     @PutMapping("/{id}")
     @SaCheckPermission("ai:provider:update")
-    public ApiResponse<AiProviderManagementDTO> update(@PathVariable Long id,
+    public ApiResponse<AiProviderManagementDTO> update(@PathVariable("id") Long id,
                                                          @Valid @RequestBody AiProviderUpsertRequest request) {
         return ApiResponse.success(providerService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     @SaCheckPermission("ai:provider:delete")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable("id") Long id) {
         providerService.delete(id);
         return ApiResponse.success(null);
     }
