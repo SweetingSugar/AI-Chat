@@ -2,6 +2,7 @@ server:
   port: ${SERVER_PORT:8080}
 
 ai:
+  credential-encryption-key: ${AI_CREDENTIAL_ENCRYPTION_KEY:}
   executor-core-pool-size: 4
   executor-max-pool-size: 16
   executor-queue-capacity: 200

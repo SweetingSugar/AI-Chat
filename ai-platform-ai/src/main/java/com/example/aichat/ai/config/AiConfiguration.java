@@ -9,10 +9,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 @EnableConfigurationProperties(AiProperties.class)
 public class AiConfiguration {
     @Bean
+    public AiCredentialCipher aiCredentialCipher(AiProperties properties) {
+        return new AiCredentialCipher(properties.getCredentialEncryptionKey());
+    }
+
+    @Bean
     @ConditionalOnMissingBean
-    public AiCredentialResolver aiCredentialResolver() {
-        return ciphertext -> {
-            throw new IllegalStateException("No AI credential resolver is configured");
-        };
+    public AiCredentialResolver aiCredentialResolver(AiCredentialCipher credentialCipher) {
+        return credentialCipher::decrypt;
     }
 }

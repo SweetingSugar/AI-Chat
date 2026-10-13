@@ -29,4 +29,39 @@ public class AiProvider {
     public LocalDateTime updateTime;
     @TableLogic
     public Integer deleted;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getProviderCode() { return providerCode; }
+    public void setProviderCode(String providerCode) { this.providerCode = providerCode; }
+    public String getProviderName() { return providerName; }
+    public void setProviderName(String providerName) { this.providerName = providerName; }
+    public AiProviderType getProviderType() { return providerType; }
+    public void setProviderType(AiProviderType providerType) { this.providerType = providerType; }
+    public String getBaseUrl() { return baseUrl; }
+    public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
+    public String getApiKeyCiphertext() { return apiKeyCiphertext; }
+    public void setApiKeyCiphertext(String apiKeyCiphertext) { this.apiKeyCiphertext = apiKeyCiphertext; }
+    public Integer getCredentialVersion() { return credentialVersion; }
+    public void setCredentialVersion(Integer credentialVersion) { this.credentialVersion = credentialVersion; }
+    public Integer getConnectTimeout() { return connectTimeout; }
+    public void setConnectTimeout(Integer connectTimeout) { this.connectTimeout = connectTimeout; }
+    public Integer getReadTimeout() { return readTimeout; }
+    public void setReadTimeout(Integer readTimeout) { this.readTimeout = readTimeout; }
+    public Integer getStatus() { return status; }
+    public void setStatus(Integer status) { this.status = status; }
+    public Integer getSort() { return sort; }
+    public void setSort(Integer sort) { this.sort = sort; }
+    public String getRemark() { return remark; }
+    public void setRemark(String remark) { this.remark = remark; }
+    public Long getCreateBy() { return createBy; }
+    public void setCreateBy(Long createBy) { this.createBy = createBy; }
+    public LocalDateTime getCreateTime() { return createTime; }
+    public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+    public Long getUpdateBy() { return updateBy; }
+    public void setUpdateBy(Long updateBy) { this.updateBy = updateBy; }
+    public LocalDateTime getUpdateTime() { return updateTime; }
+    public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
+    public Integer getDeleted() { return deleted; }
+    public void setDeleted(Integer deleted) { this.deleted = deleted; }
 }

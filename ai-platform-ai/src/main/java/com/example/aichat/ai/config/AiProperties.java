@@ -7,6 +7,7 @@ public class AiProperties {
     private int executorCorePoolSize = 4;
     private int executorMaxPoolSize = 16;
     private int executorQueueCapacity = 200;
+    private String credentialEncryptionKey;
 
     public int getExecutorCorePoolSize() {
         return executorCorePoolSize;
@@ -30,5 +31,13 @@ public class AiProperties {
 
     public void setExecutorQueueCapacity(int value) {
         executorQueueCapacity = value;
+    }
+
+    public String getCredentialEncryptionKey() {
+        return credentialEncryptionKey;
+    }
+
+    public void setCredentialEncryptionKey(String credentialEncryptionKey) {
+        this.credentialEncryptionKey = credentialEncryptionKey;
     }
 }
