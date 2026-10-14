@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.aichat.chat.mapper.ChatSessionMapper">
+    <select id="selectOwnedById" resultType="com.example.aichat.chat.entity.ChatSession">
+        select id, user_id, title, default_model_id, pinned, status, last_message_time,
+               create_time, update_time, deleted
+        from chat_session
+        where id = #{sessionId}
+          and user_id = #{userId}
+          and deleted = 0
+        limit 1
+    </select>
+</mapper>

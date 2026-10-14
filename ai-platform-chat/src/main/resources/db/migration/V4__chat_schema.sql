@@ -1,0 +1,61 @@
+create table if not exists chat_session (
+    id bigint not null auto_increment primary key comment '会话主键 ID',
+    user_id bigint not null comment '所属用户 ID',
+    title varchar(200) null comment '会话标题',
+    default_model_id bigint null comment '会话默认 AI 模型 ID，为空时使用系统默认模型',
+    pinned tinyint not null default 0 comment '是否置顶：0 否，1 是',
+    status varchar(32) not null default 'ACTIVE' comment '会话状态：ACTIVE 活跃，ARCHIVED 归档',
+    last_message_time datetime null comment '最后一条消息时间',
+    create_time datetime not null default current_timestamp comment '创建时间',
+    update_time datetime not null default current_timestamp on update current_timestamp comment '更新时间',
+    deleted tinyint not null default 0 comment '逻辑删除标记：0 未删除，1 已删除',
+    key idx_chat_session_user_list (user_id, pinned, last_message_time, id),
+    key idx_chat_session_user_status (user_id, status),
+    key idx_chat_session_model (default_model_id)
+) comment = '聊天会话表';
+
+create table if not exists chat_generation_task (
+    id bigint not null auto_increment primary key comment '生成任务主键 ID',
+    user_id bigint not null comment '所属用户 ID',
+    session_id bigint not null comment '所属会话 ID',
+    user_message_id bigint null comment '本次生成对应的用户消息 ID',
+    assistant_message_id bigint null comment '本次生成对应的助手消息 ID',
+    source_message_id bigint null comment '重新生成时被替换参考的原助手消息 ID',
+    request_id varchar(64) not null comment '本次 AI 请求唯一 ID',
+    model_id bigint not null comment '本次实际使用的 AI 模型 ID',
+    status varchar(32) not null default 'RUNNING' comment '任务状态：RUNNING 运行中，SUCCESS 成功，FAILED 失败，INTERRUPTED 中断',
+    error_code varchar(100) null comment '失败或中断错误码',
+    error_message varchar(1000) null comment '失败或中断错误信息',
+    start_time datetime not null default current_timestamp comment '任务开始时间',
+    end_time datetime null comment '任务结束时间',
+    create_time datetime not null default current_timestamp comment '创建时间',
+    update_time datetime not null default current_timestamp on update current_timestamp comment '更新时间',
+    unique key uk_chat_generation_request (request_id),
+    key idx_chat_generation_session_status (session_id, status, create_time),
+    key idx_chat_generation_user_time (user_id, create_time),
+    key idx_chat_generation_source_message (source_message_id)
+) comment = '聊天生成任务表';
+
+create table if not exists chat_message (
+    id bigint not null auto_increment primary key comment '消息主键 ID',
+    session_id bigint not null comment '所属会话 ID',
+    user_id bigint not null comment '所属用户 ID',
+    role varchar(16) not null comment '消息角色：USER 用户，ASSISTANT 助手',
+    content text not null comment '消息内容',
+    sequence bigint not null comment '会话内消息顺序号，从小到大排列',
+    status varchar(32) not null default 'PENDING' comment '消息状态：PENDING 待处理，STREAMING 流式生成中，COMPLETED 已完成，FAILED 失败，INTERRUPTED 中断',
+    generation_task_id bigint null comment '关联的生成任务 ID',
+    request_id varchar(64) null comment '关联的 AI 请求唯一 ID',
+    model_id bigint null comment '生成该助手消息时使用的 AI 模型 ID',
+    error_code varchar(100) null comment '失败或中断错误码',
+    error_message varchar(1000) null comment '失败或中断错误信息',
+    create_time datetime not null default current_timestamp comment '创建时间',
+    update_time datetime not null default current_timestamp on update current_timestamp comment '更新时间',
+    deleted tinyint not null default 0 comment '逻辑删除标记：0 未删除，1 已删除',
+    unique key uk_chat_message_session_sequence (session_id, sequence),
+    key idx_chat_message_session_sequence (session_id, sequence, id),
+    key idx_chat_message_user_time (user_id, create_time),
+    key idx_chat_message_generation_task (generation_task_id),
+    key idx_chat_message_request (request_id),
+    key idx_chat_message_model (model_id)
+) comment = '聊天消息表';

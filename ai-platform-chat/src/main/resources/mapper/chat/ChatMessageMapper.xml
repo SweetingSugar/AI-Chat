@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.aichat.chat.mapper.ChatMessageMapper">
+    <select id="selectHistory" resultType="com.example.aichat.chat.entity.ChatMessage">
+        select id, session_id, user_id, role, content, sequence, status,
+               generation_task_id, request_id, model_id, error_code, error_message,
+               create_time, update_time, deleted
+        from chat_message
+        where session_id = #{sessionId}
+          and user_id = #{userId}
+          and deleted = 0
+          and status in ('COMPLETED', 'STREAMING', 'PENDING', 'FAILED', 'INTERRUPTED')
+        <if test="beforeSequence != null">
+            and sequence &lt;= #{beforeSequence}
+        </if>
+        order by sequence asc, id asc
+    </select>
+
+    <select id="selectMaxSequence" resultType="long">
+        select coalesce(max(sequence), 0)
+        from chat_message
+        where session_id = #{sessionId}
+          and user_id = #{userId}
+          and deleted = 0
+    </select>
+
+    <select id="selectOwnedById" resultType="com.example.aichat.chat.entity.ChatMessage">
+        select id, session_id, user_id, role, content, sequence, status,
+               generation_task_id, request_id, model_id, error_code, error_message,
+               create_time, update_time, deleted
+        from chat_message
+        where id = #{messageId}
+          and user_id = #{userId}
+          and deleted = 0
+        limit 1
+    </select>
+
+    <select id="selectPreviousByRole" resultType="com.example.aichat.chat.entity.ChatMessage">
+        select id, session_id, user_id, role, content, sequence, status,
+               generation_task_id, request_id, model_id, error_code, error_message,
+               create_time, update_time, deleted
+        from chat_message
+        where session_id = #{sessionId}
+          and user_id = #{userId}
+          and sequence &lt; #{sequence}
+          and role = #{role}
+          and deleted = 0
+        order by sequence desc, id desc
+        limit 1
+    </select>
+</mapper>
