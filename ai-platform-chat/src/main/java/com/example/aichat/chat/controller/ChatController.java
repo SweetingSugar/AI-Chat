@@ -24,13 +24,13 @@ public class ChatController {
     }
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<ChatStreamEventVO>> stream(@PathVariable Long sessionId,
+    public Flux<ServerSentEvent<ChatStreamEventVO>> stream(@PathVariable("sessionId") Long sessionId,
                                                             @Valid @RequestBody ChatRequestDTO request) {
         return toSse(chatService.stream(sessionId, request));
     }
 
     @PostMapping(value = "/regenerate", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<ChatStreamEventVO>> regenerate(@PathVariable Long sessionId,
+    public Flux<ServerSentEvent<ChatStreamEventVO>> regenerate(@PathVariable("sessionId") Long sessionId,
                                                                 @Valid @RequestBody ChatRegenerateDTO request) {
         return toSse(chatService.regenerate(sessionId, request));
     }
