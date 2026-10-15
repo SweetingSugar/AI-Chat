@@ -33,8 +33,8 @@ public class ChatSessionController {
     }
 
     @GetMapping
-    public ApiResponse<PageResult<ChatSessionVO>> page(@RequestParam(defaultValue = "1") int page,
-                                                       @RequestParam(defaultValue = "20") int size) {
+    public ApiResponse<PageResult<ChatSessionVO>> page(@RequestParam(name = "page", defaultValue = "1") int page,
+                                                       @RequestParam(name = "size", defaultValue = "20") int size) {
         return ApiResponse.success(sessionService.page(Math.max(page, 1), Math.min(Math.max(size, 1), 100)));
     }
 
@@ -51,7 +51,7 @@ public class ChatSessionController {
 
     @PutMapping("/{id}/pin")
     public ApiResponse<ChatSessionVO> pin(@PathVariable("id") Long id,
-                                          @RequestParam boolean pinned) {
+                                          @RequestParam(name = "pinned") boolean pinned) {
         return ApiResponse.success(sessionService.pin(id, pinned));
     }
 

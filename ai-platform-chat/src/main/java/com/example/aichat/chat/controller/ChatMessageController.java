@@ -22,9 +22,9 @@ public class ChatMessageController {
 
     @GetMapping
     public ApiResponse<PageResult<ChatMessageVO>> page(@PathVariable Long sessionId,
-                                                       @RequestParam(defaultValue = "1") Integer page,
-                                                       @RequestParam(defaultValue = "20") Integer size,
-                                                       @RequestParam(required = false) String status) {
+                                                       @RequestParam(name = "page", defaultValue = "1") Integer page,
+                                                       @RequestParam(name = "size", defaultValue = "20") Integer size,
+                                                       @RequestParam(name = "status", required = false) String status) {
         return ApiResponse.success(messageService.page(sessionId, new ChatMessageQueryDTO(page, size, status)));
     }
 }
