@@ -25,6 +25,7 @@ import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -57,14 +58,17 @@ class ChatStreamOrchestratorTest {
     void streamsDeltaAndPersistsSuccessfulCompletion() {
         AiChatResponse response = new AiChatResponse("request-1", 1L, 3L, "test-model",
                 new AiTokenUsage(2, 3, 5, "estimate"));
-        aiChatGateway.events = Flux.just(AiStreamEvent.delta("world"), AiStreamEvent.complete(response));
+        aiChatGateway.events = Flux.just(AiStreamEvent.delta("wo"), AiStreamEvent.delta("rld"),
+                AiStreamEvent.complete(response));
 
         List<ChatStreamEventVO> events = orchestrator.stream(command, model).collectList().block();
 
-        assertEquals(3, events.size());
-        assertEquals("world", events.get(1).delta());
-        assertEquals(5, events.get(2).usage().totalTokens());
+        assertEquals(4, events.size());
+        assertEquals("wo", events.get(1).delta());
+        assertEquals("rld", events.get(2).delta());
+        assertEquals(5, events.get(3).usage().totalTokens());
         assertEquals("world", generationService.completedContent);
+        assertTrue(messageService.appendedContents.isEmpty());
     }
 
     @Test
@@ -111,6 +115,8 @@ class ChatStreamOrchestratorTest {
     }
 
     private static final class FakeMessageService implements ChatMessageService {
+        private final List<String> appendedContents = new ArrayList<>();
+
         @Override public PageResult<ChatMessageVO> page(Long sessionId, ChatMessageQueryDTO query) { return null; }
         @Override public List<ChatMessageVO> listAll(Long sessionId) { return List.of(); }
         @Override public ChatMessage findOwned(Long messageId) { return null; }
@@ -122,7 +128,7 @@ class ChatStreamOrchestratorTest {
         @Override public List<ChatMessagePair> context(Long userId, Long sessionId, Long beforeSequence) {
             return List.of(new ChatMessagePair(ChatMessageRole.USER, "hello"));
         }
-        @Override public void append(ChatGenerationResult generation, String content) { }
+        @Override public void append(ChatGenerationResult generation, String content) { appendedContents.add(content); }
         @Override public void complete(ChatGenerationResult generation, String content) { }
         @Override public void fail(ChatGenerationResult generation, String content, String errorCode, String errorMessage) { }
         @Override public void interrupt(ChatGenerationResult generation, String content) { }

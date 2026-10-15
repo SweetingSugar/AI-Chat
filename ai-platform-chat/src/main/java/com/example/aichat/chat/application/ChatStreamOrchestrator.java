@@ -101,7 +101,6 @@ public class ChatStreamOrchestrator {
         if (event.type() == com.example.aichat.ai.stream.AiStreamEventType.DELTA) {
             String delta = event.delta() == null ? "" : event.delta();
             output.append(delta);
-            messageService.append(generation, output.toString());
             return new ChatStreamEventVO(ChatStreamEventType.DELTA, generation.taskId(), command.requestId(), delta,
                     generation.assistantMessageId(), model.id, model.modelCode, null, null, null);
         }
