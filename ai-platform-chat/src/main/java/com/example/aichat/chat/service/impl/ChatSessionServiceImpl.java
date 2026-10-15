@@ -43,11 +43,11 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     @Transactional
     public ChatSessionVO create(CreateSessionDTO request) {
         CurrentUser user = userGateway.requireCurrentUser();
-        if (request.defaultModelId() != null) modelGateway.resolve(request.defaultModelId(), null);
+        Long defaultModelId = modelGateway.resolve(request.defaultModelId(), null).id;
         ChatSession session = new ChatSession();
         session.userId = user.id();
         session.title = StringUtils.hasText(request.title()) ? request.title().trim() : "新会话";
-        session.defaultModelId = request.defaultModelId();
+        session.defaultModelId = defaultModelId;
         session.pinned = 0;
         session.status = ChatSessionStatus.ACTIVE;
         sessionMapper.insert(session);
