@@ -21,7 +21,7 @@ public class ChatMessageController {
     }
 
     @GetMapping
-    public ApiResponse<PageResult<ChatMessageVO>> page(@PathVariable Long sessionId,
+    public ApiResponse<PageResult<ChatMessageVO>> page(@PathVariable("sessionId") Long sessionId,
                                                        @RequestParam(name = "page", defaultValue = "1") Integer page,
                                                        @RequestParam(name = "size", defaultValue = "20") Integer size,
                                                        @RequestParam(name = "status", required = false) String status) {
