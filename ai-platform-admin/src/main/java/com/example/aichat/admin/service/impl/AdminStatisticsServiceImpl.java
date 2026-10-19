@@ -196,6 +196,6 @@ public class AdminStatisticsServiceImpl implements AdminStatisticsService {
     }
 
     private double rate(long numerator, long denominator) {
-        return denominator == 0 ? 0D : (double) numerator / denominator;
+        return denominator == 0 ? 0D : Math.round((double) numerator / denominator * 100D) / 100D;
     }
 }
