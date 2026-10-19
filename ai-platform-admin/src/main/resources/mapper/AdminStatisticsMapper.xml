@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.aichat.admin.mapper.AdminStatisticsMapper">
+
+    <select id="selectUserOverview" resultType="map">
+        select count(*) as totalUsers,
+               coalesce(sum(case when status = 1 then 1 else 0 end), 0) as enabledUsers,
+               coalesce(sum(case when status = 0 then 1 else 0 end), 0) as disabledUsers
+        from sys_user
+        where deleted = 0
+    </select>
+
+    <select id="countNewUsers" resultType="long">
+        select count(*)
+        from sys_user
+        where deleted = 0
+          and create_time &gt;= #{from}
+          and create_time &lt; #{to}
+    </select>
+
+    <select id="countActiveUsers" resultType="long">
+        select count(distinct m.user_id)
+        from chat_message m
+        join sys_user u on u.id = m.user_id and u.deleted = 0
+        where m.deleted = 0
+          and m.role = 'USER'
+          and m.create_time &gt;= #{from}
+          and m.create_time &lt; #{to}
+    </select>
+
+    <select id="selectSessionOverview" resultType="map">
+        select count(*) as totalSessions
+        from chat_session
+        where deleted = 0
+    </select>
+
+    <select id="countNewSessions" resultType="long">
+        select count(*)
+        from chat_session
+        where deleted = 0
+          and create_time &gt;= #{from}
+          and create_time &lt; #{to}
+    </select>
+
+    <select id="selectMessageOverview" resultType="map">
+        select count(*) as totalMessages,
+               coalesce(sum(case when role = 'USER' then 1 else 0 end), 0) as userMessages,
+               coalesce(sum(case when role = 'ASSISTANT' then 1 else 0 end), 0) as assistantMessages,
+               coalesce(sum(case when status = 'COMPLETED' then 1 else 0 end), 0) as completedMessages,
+               coalesce(sum(case when status = 'FAILED' then 1 else 0 end), 0) as failedMessages
+        from chat_message
+        where deleted = 0
+          and create_time &gt;= #{from}
+          and create_time &lt; #{to}
+    </select>
+
+    <select id="selectGenerationOverview" resultType="map">
+        select count(*) as generationTasks,
+               coalesce(sum(case when status = 'SUCCESS' then 1 else 0 end), 0) as successfulGenerationTasks,
+               coalesce(sum(case when status = 'FAILED' then 1 else 0 end), 0) as failedGenerationTasks,
+               coalesce(sum(case when status = 'INTERRUPTED' then 1 else 0 end), 0) as interruptedGenerationTasks
+        from chat_generation_task
+        where create_time &gt;= #{from}
+          and create_time &lt; #{to}
+    </select>
+
+    <select id="selectAiOverview" resultType="map">
+        select count(*) as calls,
+               coalesce(sum(case when status = 'SUCCESS' then 1 else 0 end), 0) as successfulCalls,
+               coalesce(sum(case when status = 'FAILED' then 1 else 0 end), 0) as failedCalls,
+               coalesce(sum(case when status = 'CANCELLED' then 1 else 0 end), 0) as cancelledCalls,
+               coalesce(sum(input_tokens), 0) as inputTokens,
+               coalesce(sum(output_tokens), 0) as outputTokens,
+               coalesce(sum(total_tokens), 0) as totalTokens,
+               coalesce(sum(case when usage_source = 'ESTIMATED' then total_tokens else 0 end), 0) as estimatedTokens,
+               coalesce(avg(duration_ms), 0) as averageDurationMs
+        from ai_call_log
+        where start_time &gt;= #{from}
+          and start_time &lt; #{to}
+    </select>
+
+    <select id="selectNewUserTrend" resultType="com.example.aichat.admin.dto.response.DailyStatisticsRow">
+        select date_format(create_time, '%Y-%m-%d') as stat_date,
+               count(*) as new_users
+        from sys_user
+        where deleted = 0
+          and create_time &gt;= #{from}
+          and create_time &lt; #{to}
+        group by date_format(create_time, '%Y-%m-%d')
+        order by stat_date
+    </select>
+
+    <select id="selectActiveUserTrend" resultType="com.example.aichat.admin.dto.response.DailyStatisticsRow">
+        select date_format(m.create_time, '%Y-%m-%d') as stat_date,
+               count(distinct m.user_id) as active_users
+        from chat_message m
+        join sys_user u on u.id = m.user_id and u.deleted = 0
+        where m.deleted = 0
+          and m.role = 'USER'
+          and m.create_time &gt;= #{from}
+          and m.create_time &lt; #{to}
+        group by date_format(m.create_time, '%Y-%m-%d')
+        order by stat_date
+    </select>
+
+    <select id="selectSessionTrend" resultType="com.example.aichat.admin.dto.response.DailyStatisticsRow">
+        select date_format(create_time, '%Y-%m-%d') as stat_date,
+               count(*) as new_sessions
+        from chat_session
+        where deleted = 0
+          and create_time &gt;= #{from}
+          and create_time &lt; #{to}
+        group by date_format(create_time, '%Y-%m-%d')
+        order by stat_date
+    </select>
+
+    <select id="selectMessageTrend" resultType="com.example.aichat.admin.dto.response.DailyStatisticsRow">
+        select date_format(create_time, '%Y-%m-%d') as stat_date,
+               count(*) as messages,
+               coalesce(sum(case when role = 'USER' then 1 else 0 end), 0) as user_messages,
+               coalesce(sum(case when role = 'ASSISTANT' then 1 else 0 end), 0) as assistant_messages,
+               coalesce(sum(case when status = 'COMPLETED' then 1 else 0 end), 0) as completed_messages,
+               coalesce(sum(case when status = 'FAILED' then 1 else 0 end), 0) as failed_messages
+        from chat_message
+        where deleted = 0
+          and create_time &gt;= #{from}
+          and create_time &lt; #{to}
+        group by date_format(create_time, '%Y-%m-%d')
+        order by stat_date
+    </select>
+
+    <select id="selectGenerationTrend" resultType="com.example.aichat.admin.dto.response.DailyStatisticsRow">
+        select date_format(create_time, '%Y-%m-%d') as stat_date,
+               count(*) as generation_tasks,
+               coalesce(sum(case when status = 'SUCCESS' then 1 else 0 end), 0) as successful_generation_tasks
+        from chat_generation_task
+        where create_time &gt;= #{from}
+          and create_time &lt; #{to}
+        group by date_format(create_time, '%Y-%m-%d')
+        order by stat_date
+    </select>
+
+    <select id="selectAiTrend" resultType="com.example.aichat.admin.dto.response.DailyStatisticsRow">
+        select date_format(start_time, '%Y-%m-%d') as stat_date,
+               count(*) as ai_calls,
+               coalesce(sum(case when status = 'SUCCESS' then 1 else 0 end), 0) as successful_ai_calls,
+               coalesce(sum(total_tokens), 0) as total_tokens
+        from ai_call_log
+        where start_time &gt;= #{from}
+          and start_time &lt; #{to}
+        group by date_format(start_time, '%Y-%m-%d')
+        order by stat_date
+    </select>
+
+    <sql id="tokenColumns">
+        count(*) as calls,
+        coalesce(sum(input_tokens), 0) as inputTokens,
+        coalesce(sum(output_tokens), 0) as outputTokens,
+        coalesce(sum(total_tokens), 0) as totalTokens,
+        max(case when usage_source = 'ESTIMATED' then 1 else 0 end) as estimated
+    </sql>
+
+    <select id="selectTokenByDay" resultType="map">
+        select date_format(start_time, '%Y-%m-%d') as groupKey,
+               date_format(start_time, '%Y-%m-%d') as groupName,
+               <include refid="tokenColumns"/>
+        from ai_call_log
+        where start_time &gt;= #{from}
+          and start_time &lt; #{to}
+        group by date_format(start_time, '%Y-%m-%d')
+        order by groupKey
+        limit #{offset}, #{size}
+    </select>
+
+    <select id="selectTokenByModel" resultType="map">
+        select cast(model_id as char) as groupKey,
+               coalesce(model_code, cast(model_id as char)) as groupName,
+               <include refid="tokenColumns"/>
+        from ai_call_log
+        where start_time &gt;= #{from}
+          and start_time &lt; #{to}
+        group by model_id, model_code
+        order by totalTokens desc, groupKey
+        limit #{offset}, #{size}
+    </select>
+
+    <select id="selectTokenByProvider" resultType="map">
+        select cast(provider_id as char) as groupKey,
+               coalesce(provider_name, cast(provider_id as char)) as groupName,
+               <include refid="tokenColumns"/>
+        from ai_call_log
+        where start_time &gt;= #{from}
+          and start_time &lt; #{to}
+        group by provider_id, provider_name
+        order by totalTokens desc, groupKey
+        limit #{offset}, #{size}
+    </select>
+
+    <select id="selectTokenByUser" resultType="map">
+        select cast(l.user_id as char) as groupKey,
+               coalesce(u.username, cast(l.user_id as char)) as groupName,
+               count(*) as calls,
+               coalesce(sum(l.input_tokens), 0) as inputTokens,
+               coalesce(sum(l.output_tokens), 0) as outputTokens,
+               coalesce(sum(l.total_tokens), 0) as totalTokens,
+               max(case when l.usage_source = 'ESTIMATED' then 1 else 0 end) as estimated
+        from ai_call_log l
+        left join sys_user u on u.id = l.user_id and u.deleted = 0
+        where l.start_time &gt;= #{from}
+          and l.start_time &lt; #{to}
+        group by l.user_id, u.username
+        order by totalTokens desc, groupKey
+        limit #{offset}, #{size}
+    </select>
+</mapper>

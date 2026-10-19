@@ -11,8 +11,22 @@
     <dependencies>
         <dependency>
             <groupId>com.example.aichat</groupId>
+            <artifactId>ai-platform-system</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.example.aichat</groupId>
+            <artifactId>ai-platform-chat</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.example.aichat</groupId>
             <artifactId>ai-platform-ai</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
