@@ -28,8 +28,8 @@ public class StatisticsQuery {
         if (!to.isAfter(from)) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "to must be after from");
         }
-        if (Duration.between(from, to).toDays() > 366) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Statistics range cannot exceed 366 days");
+        if (Duration.between(from, to).toDays() > 365) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Statistics range cannot exceed 365 days");
         }
     }
 
