@@ -14,7 +14,7 @@
 
 - Do not create or restore `sys_login_log` or `sys_operation_log`.
 - Do not add admin statistics detail tables in this phase.
-- Use time range `[from, to)` and reject ranges longer than 366 days.
+- Use date range `[from, to)` with `yyyy-MM-dd` parameters and reject ranges longer than 365 days.
 - Filter logical-deleted users, sessions, and messages with `deleted = 0`.
 - Use aggregate SQL; do not load full detail tables into JVM for statistics.
 - Protect all admin endpoints with `@SaCheckPermission`.
@@ -23,7 +23,7 @@
 
 - Empty datasets must return numeric zeroes and complete zero-filled trend dates; test in service.
 - End timestamps are exclusive and adjacent ranges must not double-count; test query/service date handling.
-- Invalid, reversed, or over-366-day ranges must fail with `VALIDATION_ERROR`; test query validation.
+- Invalid, reversed, or over-365-day ranges must fail with `VALIDATION_ERROR`; test query validation.
 - Token nulls and estimated usage must aggregate safely and preserve estimated totals; test token mapping.
 - Dynamic `groupBy` must be whitelist-controlled and never become raw user SQL; test all supported values and rejection.
 
@@ -57,10 +57,10 @@
 - Create: `ai-platform-admin/src/main/java/com/example/aichat/admin/dto/response/DailyStatisticsRow.java`
 
 **Interfaces:**
-- `StatisticsQuery(LocalDateTime from, LocalDateTime to)` as a Spring `@ModelAttribute` with `validate()`.
+- `StatisticsQuery(LocalDate from, LocalDate to)` as a Spring `@ModelAttribute` with `validate()`; mapper boundaries remain `LocalDateTime`.
 - Response records expose the documented JSON field names and numeric zero defaults.
 
-- [x] Write tests for valid, reversed, null, and over-366-day ranges.
+- [x] Write tests for valid, reversed, null, and over-365-day ranges.
 - [x] Implement immutable response records and a mutable MyBatis daily projection row.
 - [x] Run DTO/service validation tests.
 

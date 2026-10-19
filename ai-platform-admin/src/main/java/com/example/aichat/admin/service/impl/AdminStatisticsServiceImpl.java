@@ -35,17 +35,17 @@ public class AdminStatisticsServiceImpl implements AdminStatisticsService {
         query.validate();
         Map<String, Object> users = mapper.selectUserOverview();
         Map<String, Object> sessions = mapper.selectSessionOverview();
-        Map<String, Object> messages = mapper.selectMessageOverview(query.getFrom(), query.getTo());
-        Map<String, Object> ai = mapper.selectAiOverview(query.getFrom(), query.getTo());
+        Map<String, Object> messages = mapper.selectMessageOverview(query.getFromDateTime(), query.getToDateTime());
+        Map<String, Object> ai = mapper.selectAiOverview(query.getFromDateTime(), query.getToDateTime());
         long aiCalls = number(ai, "calls");
         return new DashboardOverviewDTO(
                 number(users, "totalUsers"),
                 number(users, "enabledUsers"),
                 number(users, "disabledUsers"),
-                mapper.countNewUsers(query.getFrom(), query.getTo()),
-                mapper.countActiveUsers(query.getFrom(), query.getTo()),
+                mapper.countNewUsers(query.getFromDateTime(), query.getToDateTime()),
+                mapper.countActiveUsers(query.getFromDateTime(), query.getToDateTime()),
                 number(sessions, "totalSessions"),
-                mapper.countNewSessions(query.getFrom(), query.getTo()),
+                mapper.countNewSessions(query.getFromDateTime(), query.getToDateTime()),
                 number(messages, "totalMessages"),
                 number(messages, "userMessages"),
                 number(messages, "assistantMessages"),
@@ -80,16 +80,16 @@ public class AdminStatisticsServiceImpl implements AdminStatisticsService {
                         number(entry.getValue().getActiveUsers())))
                 .toList();
         return new UserStatisticsDTO(number(users, "totalUsers"), number(users, "enabledUsers"),
-                number(users, "disabledUsers"), mapper.countNewUsers(query.getFrom(), query.getTo()),
-                mapper.countActiveUsers(query.getFrom(), query.getTo()), trend);
+                number(users, "disabledUsers"), mapper.countNewUsers(query.getFromDateTime(), query.getToDateTime()),
+                mapper.countActiveUsers(query.getFromDateTime(), query.getToDateTime()), trend);
     }
 
     @Override
     public ChatStatisticsDTO chatStatistics(StatisticsQuery query) {
         query.validate();
         Map<String, Object> sessions = mapper.selectSessionOverview();
-        Map<String, Object> messages = mapper.selectMessageOverview(query.getFrom(), query.getTo());
-        Map<String, Object> generation = mapper.selectGenerationOverview(query.getFrom(), query.getTo());
+        Map<String, Object> messages = mapper.selectMessageOverview(query.getFromDateTime(), query.getToDateTime());
+        Map<String, Object> generation = mapper.selectGenerationOverview(query.getFromDateTime(), query.getToDateTime());
         Map<LocalDate, DailyStatisticsRow> rows = dailyRows(query);
         List<ChatTrendDTO> trend = rows.entrySet().stream().map(entry -> {
             DailyStatisticsRow row = entry.getValue();
@@ -102,7 +102,7 @@ public class AdminStatisticsServiceImpl implements AdminStatisticsService {
         long denominator = successful + number(generation, "failedGenerationTasks")
                 + number(generation, "interruptedGenerationTasks");
         return new ChatStatisticsDTO(number(sessions, "totalSessions"),
-                mapper.countNewSessions(query.getFrom(), query.getTo()), number(messages, "totalMessages"),
+                mapper.countNewSessions(query.getFromDateTime(), query.getToDateTime()), number(messages, "totalMessages"),
                 number(messages, "userMessages"), number(messages, "assistantMessages"),
                 number(messages, "completedMessages"), number(messages, "failedMessages"),
                 number(generation, "generationTasks"), successful,
@@ -116,7 +116,7 @@ public class AdminStatisticsServiceImpl implements AdminStatisticsService {
         if (page < 1 || size < 1 || size > 100) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "page must be >= 1 and size must be 1..100");
         }
-        Map<String, Object> summary = mapper.selectAiOverview(query.getFrom(), query.getTo());
+        Map<String, Object> summary = mapper.selectAiOverview(query.getFromDateTime(), query.getToDateTime());
         TokenGroupBy grouping = TokenGroupBy.from(groupBy);
         long offsetValue = (long) (page - 1) * size;
         if (offsetValue > Integer.MAX_VALUE) {
@@ -124,10 +124,10 @@ public class AdminStatisticsServiceImpl implements AdminStatisticsService {
         }
         int offset = (int) offsetValue;
         List<Map<String, Object>> groups = switch (grouping) {
-            case DAY -> mapper.selectTokenByDay(query.getFrom(), query.getTo(), offset, size);
-            case MODEL -> mapper.selectTokenByModel(query.getFrom(), query.getTo(), offset, size);
-            case PROVIDER -> mapper.selectTokenByProvider(query.getFrom(), query.getTo(), offset, size);
-            case USER -> mapper.selectTokenByUser(query.getFrom(), query.getTo(), offset, size);
+            case DAY -> mapper.selectTokenByDay(query.getFromDateTime(), query.getToDateTime(), offset, size);
+            case MODEL -> mapper.selectTokenByModel(query.getFromDateTime(), query.getToDateTime(), offset, size);
+            case PROVIDER -> mapper.selectTokenByProvider(query.getFromDateTime(), query.getToDateTime(), offset, size);
+            case USER -> mapper.selectTokenByUser(query.getFromDateTime(), query.getToDateTime(), offset, size);
         };
         List<TokenGroupDTO> groupDtos = groups.stream().map(this::toTokenGroup).toList();
         return new TokenStatisticsDTO(number(summary, "calls"), number(summary, "successfulCalls"),
@@ -138,18 +138,18 @@ public class AdminStatisticsServiceImpl implements AdminStatisticsService {
 
     private Map<LocalDate, DailyStatisticsRow> dailyRows(StatisticsQuery query) {
         Map<LocalDate, DailyStatisticsRow> rows = new LinkedHashMap<>();
-        LocalDate last = query.getTo().minusNanos(1).toLocalDate();
-        for (LocalDate date = query.getFrom().toLocalDate(); !date.isAfter(last); date = date.plusDays(1)) {
+        LocalDate last = query.getToDateTime().minusNanos(1).toLocalDate();
+        for (LocalDate date = query.getFrom(); !date.isAfter(last); date = date.plusDays(1)) {
             DailyStatisticsRow row = new DailyStatisticsRow();
             row.setStatDate(date.toString());
             rows.put(date, row);
         }
-        mapper.selectNewUserTrend(query.getFrom(), query.getTo()).forEach(row -> apply(rows, row, 1));
-        mapper.selectActiveUserTrend(query.getFrom(), query.getTo()).forEach(row -> apply(rows, row, 2));
-        mapper.selectSessionTrend(query.getFrom(), query.getTo()).forEach(row -> apply(rows, row, 3));
-        mapper.selectMessageTrend(query.getFrom(), query.getTo()).forEach(row -> apply(rows, row, 4));
-        mapper.selectGenerationTrend(query.getFrom(), query.getTo()).forEach(row -> apply(rows, row, 5));
-        mapper.selectAiTrend(query.getFrom(), query.getTo()).forEach(row -> apply(rows, row, 6));
+        mapper.selectNewUserTrend(query.getFromDateTime(), query.getToDateTime()).forEach(row -> apply(rows, row, 1));
+        mapper.selectActiveUserTrend(query.getFromDateTime(), query.getToDateTime()).forEach(row -> apply(rows, row, 2));
+        mapper.selectSessionTrend(query.getFromDateTime(), query.getToDateTime()).forEach(row -> apply(rows, row, 3));
+        mapper.selectMessageTrend(query.getFromDateTime(), query.getToDateTime()).forEach(row -> apply(rows, row, 4));
+        mapper.selectGenerationTrend(query.getFromDateTime(), query.getToDateTime()).forEach(row -> apply(rows, row, 5));
+        mapper.selectAiTrend(query.getFromDateTime(), query.getToDateTime()).forEach(row -> apply(rows, row, 6));
         return rows;
     }
 

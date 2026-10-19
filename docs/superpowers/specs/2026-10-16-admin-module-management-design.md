@@ -157,7 +157,7 @@ ai-platform-admin/
 
 ## 6. API 设计
 
-所有接口返回统一的 `ApiResponse<T>`。时间参数使用 `LocalDateTime`，例如 `2026-10-01T00:00:00`。时间范围最大 366 天，分页 `size` 最大 100。
+所有接口返回统一的 `ApiResponse<T>`。时间参数使用 `LocalDate`，格式为 `yyyy-MM-dd`，例如 `2026-10-01`。时间范围使用半开区间 `[from, to)`，最大 365 天，分页 `size` 最大 100。
 
 ### 6.1 首页概览
 
@@ -169,8 +169,8 @@ ai-platform-admin/
 
 | 参数 | 类型 | 必填 | 说明 |
 |---|---|---:|---|
-| `from` | `LocalDateTime` | 是 | 起始时间，包含 |
-| `to` | `LocalDateTime` | 是 | 结束时间，不包含 |
+| `from` | `LocalDate` | 是 | 起始日期，包含 |
+| `to` | `LocalDate` | 是 | 结束日期，不包含 |
 
 响应字段：
 
@@ -259,8 +259,8 @@ ai-platform-admin/
 
 | 参数 | 类型 | 必填 | 说明 |
 |---|---|---:|---|
-| `from` | `LocalDateTime` | 是 | 起始时间 |
-| `to` | `LocalDateTime` | 是 | 结束时间 |
+| `from` | `LocalDate` | 是 | 起始日期 |
+| `to` | `LocalDate` | 是 | 结束日期 |
 | `groupBy` | `DAY/MODEL/PROVIDER/USER` | 否 | 默认 `DAY` |
 | `page` | int | 否 | 分组查询分页 |
 | `size` | int | 否 | 最大 100 |
@@ -440,7 +440,7 @@ create index idx_ai_call_log_start_status_usage
 
 - 所有 `/api/admin/**` 接口必须同时具备登录校验和 `@SaCheckPermission`。
 - `groupBy` 仅允许 `DAY`、`MODEL`、`PROVIDER`、`USER` 白名单值。
-- 时间范围最大 366 天，分页大小最大 100。
+- 时间范围最大 365 天，分页大小最大 100。
 - 排序字段只能使用后端白名单，禁止将前端参数直接拼接到 SQL。
 - 统计接口只返回聚合字段，不返回聊天正文、密码、手机号全量或 API Key。
 - 用户维度 Token 统计可能涉及敏感运营数据，建议后续拆分权限 `admin:statistics:token:user:read`。

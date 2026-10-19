@@ -4,19 +4,20 @@ import com.example.aichat.common.error.BusinessException;
 import com.example.aichat.common.error.ErrorCode;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 public class StatisticsQuery {
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-    private LocalDateTime from;
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-    private LocalDateTime to;
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDate from;
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDate to;
 
     public StatisticsQuery() {
     }
 
-    public StatisticsQuery(LocalDateTime from, LocalDateTime to) {
+    public StatisticsQuery(LocalDate from, LocalDate to) {
         this.from = from;
         this.to = to;
     }
@@ -28,24 +29,32 @@ public class StatisticsQuery {
         if (!to.isAfter(from)) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "to must be after from");
         }
-        if (Duration.between(from, to).toDays() > 365) {
+        if (ChronoUnit.DAYS.between(from, to) > 365) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Statistics range cannot exceed 365 days");
         }
     }
 
-    public LocalDateTime getFrom() {
+    public LocalDate getFrom() {
         return from;
     }
 
-    public void setFrom(LocalDateTime from) {
+    public void setFrom(LocalDate from) {
         this.from = from;
     }
 
-    public LocalDateTime getTo() {
+    public LocalDate getTo() {
         return to;
     }
 
-    public void setTo(LocalDateTime to) {
+    public void setTo(LocalDate to) {
         this.to = to;
+    }
+
+    public LocalDateTime getFromDateTime() {
+        return from == null ? null : from.atStartOfDay();
+    }
+
+    public LocalDateTime getToDateTime() {
+        return to == null ? null : to.atStartOfDay();
     }
 }

@@ -10,6 +10,7 @@ import com.example.aichat.common.error.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +51,7 @@ class AdminStatisticsServiceImplTest {
     }
 
     private StatisticsQuery query() {
-        return new StatisticsQuery(LocalDateTime.of(2026, 1, 1, 0, 0),
-                LocalDateTime.of(2026, 1, 3, 0, 0));
+        return new StatisticsQuery(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 3));
     }
 
     private static class StubMapper implements AdminStatisticsMapper {
