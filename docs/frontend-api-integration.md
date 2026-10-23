@@ -149,7 +149,13 @@ satoken: <tokenValue>
 
 ## 3. 聊天接口
 
-### 3.1 会话
+### 3.1 可用模型
+
+`GET /api/chat/models`
+
+返回当前已启用且供应商可用的模型数组，供创建会话或发起对话时选择 `modelId`。响应模型字段为 `id`、`providerId`、`providerName`、`modelCode`、`modelName`、`contextWindow`、`maxOutputTokens`、`supportStream` 和 `defaultModel`。
+
+### 3.2 会话
 
 所有会话接口需要认证，且只能访问当前用户自己的会话。
 
@@ -197,13 +203,13 @@ satoken: <tokenValue>
 }
 ```
 
-### 3.2 消息分页
+### 3.3 消息分页
 
 `GET /api/chat/sessions/{sessionId}/messages?page=1&size=20&status=COMPLETED`
 
 需要认证。`page` 默认 `1` 且会自动限制为不小于 1，`size` 默认 `20` 且会自动限制为 1–100；`status` 可省略，填写时必须为消息状态枚举且不区分大小写。`data` 为第 1.4 节的分页结构，`records` 元素为消息对象。
 
-### 3.3 发起流式对话
+### 3.4 发起流式对话
 
 `POST /api/chat/sessions/{sessionId}/stream`
 
@@ -254,7 +260,7 @@ data: {"type":"DELTA","taskId":50,"requestId":"8bf0f7e5-0a8f-4f9c-9a32-xxxxxxxxx
 
 会话、模型、请求参数与归属校验在创建流前失败时，响应为普通 JSON 错误；已建立流后的模型或编排异常通过 `failed` SSE 事件返回。前端在收到 `failed` 或请求被取消后，应以消息列表重新拉取接口中的最终状态为准。
 
-### 3.4 重新生成
+### 3.5 重新生成
 
 `POST /api/chat/sessions/{sessionId}/regenerate`
 
