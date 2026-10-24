@@ -6,6 +6,7 @@ import com.example.aichat.system.dto.IdSetDTO;
 import com.example.aichat.system.dto.RoleDTO;
 import com.example.aichat.system.entity.SysRole;
 import com.example.aichat.system.service.RoleService;
+import com.example.aichat.system.vo.RoleVO;
 import jakarta.validation.Valid;
 
 import java.util.List;
@@ -36,8 +37,8 @@ public class RoleController {
 
     @GetMapping("/{id}")
     @SaCheckPermission("system:role:read")
-    public ApiResponse<SysRole> get(@PathVariable("id") Long id) {
-        return ApiResponse.success(roleService.getRequired(id));
+    public ApiResponse<RoleVO> get(@PathVariable("id") Long id) {
+        return ApiResponse.success(RoleVO.from(roleService.getRequired(id)).withPermissionIds(roleService.listPermissionIds(id)));
     }
 
     @PostMapping

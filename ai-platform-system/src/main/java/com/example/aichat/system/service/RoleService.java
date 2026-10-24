@@ -17,5 +17,7 @@ public interface RoleService {
 
     void delete(Long id);
 
+    List<Long> listPermissionIds(Long roleId);
+
     void assignPermissions(Long roleId, Collection<Long> permissionIds);
 }

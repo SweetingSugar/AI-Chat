@@ -83,6 +83,12 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    public List<Long> listPermissionIds(Long roleId) {
+        return rolePermissionMapper.selectList(new LambdaQueryWrapper<SysRolePermission>().eq(SysRolePermission::getRoleId, roleId))
+                .stream().map(SysRolePermission::getPermissionId).toList();
+    }
+
+    @Override
     @Transactional
     public void assignPermissions(Long roleId, Collection<Long> permissionIds) {
         getRequired(roleId);
