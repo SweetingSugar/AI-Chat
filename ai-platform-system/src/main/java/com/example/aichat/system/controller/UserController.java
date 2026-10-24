@@ -37,7 +37,7 @@ public class UserController {
     @GetMapping("/{id}")
     @SaCheckPermission("system:user:read")
     public ApiResponse<UserVO> get(@PathVariable("id") Long id) {
-        return ApiResponse.success(UserVO.from(userService.getRequired(id)));
+        return ApiResponse.success(UserVO.from(userService.getRequired(id)).withRoleIds(userService.listRoleIds(id)));
     }
 
     @PutMapping("/{id}")

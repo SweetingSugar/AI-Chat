@@ -18,6 +18,8 @@ public interface UserService {
 
     void updateStatus(Long id, Integer status);
 
+    List<Long> listRoleIds(Long userId);
+
     void assignRoles(Long userId, Collection<Long> roleIds);
 
     void changePassword(Long userId, String oldPassword, String newPassword);

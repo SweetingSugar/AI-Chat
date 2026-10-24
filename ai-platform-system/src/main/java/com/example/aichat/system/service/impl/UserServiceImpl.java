@@ -91,6 +91,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public List<Long> listRoleIds(Long userId) {
+        getRequired(userId);
+        return userRoleMapper.selectList(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId))
+                .stream().map(SysUserRole::getRoleId).toList();
+    }
+
+    @Override
     @Transactional
     public void assignRoles(Long userId, Collection<Long> roleIds) {
         getRequired(userId);
