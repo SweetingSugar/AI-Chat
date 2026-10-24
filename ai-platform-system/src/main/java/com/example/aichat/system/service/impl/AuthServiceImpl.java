@@ -63,7 +63,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserVO me() {
-        return UserVO.from(userService.getRequired(currentUserProvider.requireCurrentUser().id()));
+        Long userId = currentUserProvider.requireCurrentUser().id();
+        return UserVO.from(userService.getRequired(userId))
+                .withCodes(StpUtil.getRoleList(), StpUtil.getPermissionList());
     }
 
     @Override
