@@ -6,6 +6,7 @@ import com.example.aichat.ai.dto.request.AiProviderUpsertRequest;
 import com.example.aichat.ai.dto.response.AiProviderManagementDTO;
 import com.example.aichat.ai.entity.AiModel;
 import com.example.aichat.ai.entity.AiProvider;
+import com.example.aichat.ai.enums.AiProviderType;
 import com.example.aichat.ai.exception.AiModelCallException;
 import com.example.aichat.ai.mapper.AiModelMapper;
 import com.example.aichat.ai.mapper.AiProviderMapper;
@@ -53,11 +54,13 @@ public class AiProviderServiceImpl implements AiProviderService {
     @Transactional
     public AiProviderManagementDTO create(AiProviderUpsertRequest request) {
         assertCodeAvailable(request.providerCode(), null);
-        if (!StringUtils.hasText(request.apiKey())) {
+        if (requiresCredential(request.providerType()) && !StringUtils.hasText(request.apiKey())) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "API key is required when creating a provider");
         }
         AiProvider provider = copy(request, new AiProvider());
-        provider.setApiKeyCiphertext(credentialCipher.encrypt(request.apiKey().trim()));
+        provider.setApiKeyCiphertext(StringUtils.hasText(request.apiKey())
+                ? credentialCipher.encrypt(request.apiKey().trim())
+                : null);
         provider.setCredentialVersion(1);
         mapper.insert(provider);
         return toManagementDto(provider);
@@ -68,6 +71,11 @@ public class AiProviderServiceImpl implements AiProviderService {
     public AiProviderManagementDTO update(Long providerId, AiProviderUpsertRequest request) {
         AiProvider provider = getRequired(providerId);
         assertCodeAvailable(request.providerCode(), providerId);
+        if (requiresCredential(request.providerType())
+                && !StringUtils.hasText(request.apiKey())
+                && !StringUtils.hasText(provider.getApiKeyCiphertext())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "API key is required for this provider type");
+        }
         copy(request, provider);
         if (StringUtils.hasText(request.apiKey())) {
             provider.setApiKeyCiphertext(credentialCipher.encrypt(request.apiKey().trim()));
@@ -93,6 +101,10 @@ public class AiProviderServiceImpl implements AiProviderService {
             throw new AiModelCallException("AI provider is not enabled");
         }
         return provider;
+    }
+
+    private boolean requiresCredential(AiProviderType providerType) {
+        return providerType != AiProviderType.OLLAMA;
     }
 
     private void assertCodeAvailable(String providerCode, Long excludedId) {
