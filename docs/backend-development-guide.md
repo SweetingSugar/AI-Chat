@@ -69,7 +69,8 @@ ai-platform-boot
 - 供应商配置包含供应商代码、名称、类型、`baseUrl`、连接/读取超时、启用状态和排序。
 - API Key 入库前使用 AES-256-GCM 加密，密文带 `v1:` 版本前缀；模型调用前解密。
 - 模型配置包含所属供应商、模型代码和名称、上下文窗口、最大输出 Token、默认 `temperature` / `topP`、流式支持标记、默认模型标记与启用状态。
-- 已注册三种供应商类型：`OPENAI`、`DEEPSEEK`、`QWEN`。三者均通过 OpenAI 兼容的 LangChain4j 流式模型适配器发起调用。
+- 已注册四种供应商类型：`OPENAI`、`DEEPSEEK`、`QWEN`、`OLLAMA`。前三者通过 OpenAI 兼容的 LangChain4j 流式模型适配器发起调用；`OLLAMA` 使用 LangChain4j 原生 Ollama 流式适配器。
+- Ollama 供应商通常将 `baseUrl` 配置为 `http://localhost:11434`，模型代码填写 Ollama 中已拉取的模型名；原生 Ollama 不要求 API Key。
 - 路由优先级为：请求指定模型 → 会话默认模型 → 系统默认且已启用的模型；路由后还会校验其供应商处于启用状态。
 - 更新供应商时，未提交 API Key 会保留原有密文；将模型设为系统默认模型时，会清除其他模型的默认标记。
 

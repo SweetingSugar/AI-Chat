@@ -387,14 +387,16 @@ data: {"type":"DELTA","taskId":50,"requestId":"8bf0f7e5-0a8f-4f9c-9a32-xxxxxxxxx
 | --- | --- | --- |
 | `providerCode` | 是 | 最长 50，唯一 |
 | `providerName` | 是 | 最长 100 |
-| `providerType` | 是 | `OPENAI`、`DEEPSEEK`、`QWEN` |
+| `providerType` | 是 | `OPENAI`、`DEEPSEEK`、`QWEN`、`OLLAMA` |
 | `baseUrl` | 是 | 最长 500 |
-| `apiKey` | 新增时是 | 最长 4096；更新时为空或缺省则保留已有 API Key |
+| `apiKey` | 非 Ollama 供应商新增时是；Ollama 可省略 | 最长 4096；更新时为空或缺省则保留已有 API Key |
 | `connectTimeout` | 否 | 1–120；当前 OpenAI 兼容适配器未将该字段传入模型客户端 |
 | `readTimeout` | 否 | 1–600；当前 OpenAI 兼容适配器按毫秒传入模型客户端 |
 | `status` | 否 | `0` 或 `1`，缺省为 `1` |
 | `sort` | 否 | 非负整数，缺省为 `0` |
 | `remark` | 否 | 最长 500 |
+
+`OLLAMA` 供应商通常使用 `http://localhost:11434` 作为 `baseUrl`，`apiKey` 可以省略。
 
 供应商响应不返回 API Key，字段为 `id`、`providerCode`、`providerName`、`providerType`、`baseUrl`、`connectTimeout`、`readTimeout`、`status`、`hasApiKey`、`credentialVersion`、`sort`、`remark`。
 
