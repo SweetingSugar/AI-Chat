@@ -40,7 +40,7 @@ public class OpenAiModelProvider implements ModelProvider {
                 else if (snapshot.temperature() != null) builder.temperature(snapshot.temperature().doubleValue());
                 if (options != null && options.topP() != null) builder.topP(options.topP());
                 else if (snapshot.topP() != null) builder.topP(snapshot.topP().doubleValue());
-                return LangChain4jStreamAdapter.adapt(builder.build().chat(MessageConverter.toLangChain4j(messages)));
+                return LangChain4jStreamAdapter.adapt(builder.build(), MessageConverter.toLangChain4j(messages));
             } catch (RuntimeException error) {
                 return Flux.just(AiStreamEvent.error("AI_PROVIDER_ERROR", "AI provider request failed"));
             }

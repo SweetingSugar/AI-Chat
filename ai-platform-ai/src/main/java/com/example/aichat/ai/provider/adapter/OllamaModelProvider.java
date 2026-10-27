@@ -42,7 +42,7 @@ public class OllamaModelProvider implements ModelProvider {
                     builder.topP(snapshot.topP().doubleValue());
                 }
                 return LangChain4jStreamAdapter.adapt(
-                        builder.build().chat(MessageConverter.toLangChain4j(messages))
+                        builder.build(), MessageConverter.toLangChain4j(messages)
                 );
             } catch (RuntimeException error) {
                 return Flux.just(AiStreamEvent.error("AI_PROVIDER_ERROR", "AI provider request failed"));

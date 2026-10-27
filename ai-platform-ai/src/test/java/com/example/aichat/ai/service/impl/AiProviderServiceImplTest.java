@@ -45,7 +45,7 @@ class AiProviderServiceImplTest {
         AiProviderUpsertRequest request = request(AiProviderType.OLLAMA, null);
 
         assertDoesNotThrow(() -> service.create(request));
-        verify(providerMapper).insert(argThat(provider -> provider.getApiKeyCiphertext() == null));
+        verify(providerMapper).insert(argThat((AiProvider provider) -> provider.getApiKeyCiphertext() == null));
     }
 
     @Test
@@ -67,7 +67,7 @@ class AiProviderServiceImplTest {
         provider.setApiKeyCiphertext(encryptedCredential);
         provider.setCredentialVersion(1);
         when(providerMapper.selectById(7L)).thenReturn(provider);
-        when(providerMapper.updateById(any())).thenReturn(1);
+        when(providerMapper.updateById(any(AiProvider.class))).thenReturn(1);
 
         service.update(7L, request(AiProviderType.OLLAMA, null));
 
