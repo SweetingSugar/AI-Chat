@@ -306,7 +306,6 @@ public class FileServiceImpl implements FileService {
             throw exception;
         }
         metadata.status = FileStatus.DELETED;
-        metadata.deleted = 1;
         mapper.updateById(metadata);
         mapper.deleteById(metadata.id);
     }
