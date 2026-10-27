@@ -1,8 +1,11 @@
 package com.example.aichat.file.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.aichat.common.security.CurrentUser;
 import com.example.aichat.common.security.CurrentUserProvider;
 import com.example.aichat.file.config.FileStorageProperties;
+import com.example.aichat.file.dto.FileQueryRequest;
 import com.example.aichat.file.entity.FileMetadata;
 import com.example.aichat.file.enums.FileStatus;
 import com.example.aichat.file.mapper.FileMetadataMapper;
@@ -12,11 +15,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doCallRealMethod;
@@ -48,6 +55,25 @@ class FileServiceImplTest {
                 .thenReturn(Optional.of(new CurrentUser(100L, "alice")));
         lenient().doCallRealMethod().when(currentUserProvider).requireCurrentUser();
         service = new FileServiceImpl(mapper, storage, currentUserProvider, properties);
+    }
+
+    @Test
+    void queriesCompleteCalendarDateRange() {
+        when(mapper.selectPage(any(), any())).thenReturn(new Page<>());
+
+        FileQueryRequest request = new FileQueryRequest();
+        request.setCreatedFrom(LocalDate.of(2026, 10, 1));
+        request.setCreatedTo(LocalDate.of(2026, 10, 27));
+
+        service.page(request);
+
+        ArgumentCaptor<QueryWrapper<FileMetadata>> queryCaptor = ArgumentCaptor.forClass(QueryWrapper.class);
+        verify(mapper).selectPage(any(), queryCaptor.capture());
+        queryCaptor.getValue().getSqlSegment();
+        assertThat(queryCaptor.getValue().getParamNameValuePairs().values())
+                .containsExactlyInAnyOrder(
+                        LocalDateTime.of(2026, 10, 1, 0, 0),
+                        LocalDateTime.of(2026, 10, 28, 0, 0));
     }
 
     @Test

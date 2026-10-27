@@ -3,7 +3,7 @@ package com.example.aichat.file.dto;
 import com.example.aichat.file.enums.FileStatus;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 public class FileQueryRequest {
     private Integer page = 1;
@@ -12,10 +12,10 @@ public class FileQueryRequest {
     private String originalName;
     private String contentType;
     private FileStatus status;
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-    private LocalDateTime createdFrom;
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-    private LocalDateTime createdTo;
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private LocalDate createdFrom;
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private LocalDate createdTo;
 
     public Integer getPage() {
         return page;
@@ -65,19 +65,19 @@ public class FileQueryRequest {
         this.status = status;
     }
 
-    public LocalDateTime getCreatedFrom() {
+    public LocalDate getCreatedFrom() {
         return createdFrom;
     }
 
-    public void setCreatedFrom(LocalDateTime createdFrom) {
+    public void setCreatedFrom(LocalDate createdFrom) {
         this.createdFrom = createdFrom;
     }
 
-    public LocalDateTime getCreatedTo() {
+    public LocalDate getCreatedTo() {
         return createdTo;
     }
 
-    public void setCreatedTo(LocalDateTime createdTo) {
+    public void setCreatedTo(LocalDate createdTo) {
         this.createdTo = createdTo;
     }
 }

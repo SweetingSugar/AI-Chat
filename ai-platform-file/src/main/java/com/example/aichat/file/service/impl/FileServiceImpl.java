@@ -124,8 +124,12 @@ public class FileServiceImpl implements FileService {
         if (StringUtils.hasText(request.getOriginalName())) query.like("original_name", request.getOriginalName());
         if (StringUtils.hasText(request.getContentType())) query.eq("content_type", request.getContentType());
         if (request.getStatus() != null) query.eq("status", request.getStatus().name());
-        if (request.getCreatedFrom() != null) query.ge("create_time", request.getCreatedFrom());
-        if (request.getCreatedTo() != null) query.lt("create_time", request.getCreatedTo());
+        if (request.getCreatedFrom() != null) {
+            query.ge("create_time", request.getCreatedFrom().atStartOfDay());
+        }
+        if (request.getCreatedTo() != null) {
+            query.lt("create_time", request.getCreatedTo().plusDays(1).atStartOfDay());
+        }
         query.orderByDesc("create_time").orderByDesc("id");
         long page = request.getPage() == null ? 1 : Math.max(1, request.getPage());
         long size = request.getSize() == null ? 20 : Math.min(Math.max(1, request.getSize()), 100);

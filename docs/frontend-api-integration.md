@@ -348,7 +348,7 @@ await fetch('/api/files', { method: 'POST', headers: tokenHeaders, body });
 
 | 方法与路径 | 权限 | 说明 |
 | --- | --- | --- |
-| `GET /api/admin/files?page=1&size=20` | `file:read` | 分页查询文件 |
+| `GET /api/admin/files?page=1&size=20&createdFrom=2026-10-01&createdTo=2026-10-27` | `file:read` | 分页查询文件，日期参数格式为 `yyyy-MM-dd`，范围包含起止日期 |
 | `GET /api/admin/files/{fileId}` | `file:read` | 查询文件详情 |
 | `DELETE /api/admin/files/{fileId}` | `file:delete` | 删除任意用户文件 |
 
