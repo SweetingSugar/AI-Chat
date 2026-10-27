@@ -7,8 +7,12 @@ import com.example.aichat.file.vo.FileMetadataVO;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 public interface FileService extends FileAccessService {
     FileMetadataVO upload(MultipartFile file);
+
+    List<FileMetadataVO> uploadBatch(List<MultipartFile> files);
 
     FileMetadataVO findAccessible(Long fileId);
 

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/files")
@@ -32,6 +33,11 @@ public class FileController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<FileMetadataVO> upload(@RequestPart("file") MultipartFile file) {
         return ApiResponse.success(service.upload(file));
+    }
+
+    @PostMapping(value = "/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<List<FileMetadataVO>> uploadBatch(@RequestPart("files") List<MultipartFile> files) {
+        return ApiResponse.success(service.uploadBatch(files));
     }
 
     @GetMapping("/{fileId}")

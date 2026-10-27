@@ -53,25 +53,8 @@ public class FileServiceImpl implements FileService {
     @Override
     public FileMetadataVO upload(MultipartFile file) {
         CurrentUser user = currentUserProvider.requireCurrentUser();
-        validateUpload(file);
-        String originalName = safeOriginalName(file.getOriginalFilename());
-        if (originalName.length() > 255) throw error(FileErrorCode.FILE_NAME_TOO_LONG);
-        String objectKey = objectKey(user.id(), originalName);
-        try (InputStream inputStream = file.getInputStream()) {
-            storage.put(properties.getBucket(), objectKey, inputStream, file.getSize(), file.getContentType());
-        } catch (IOException exception) {
-            throw new BusinessException(FileErrorCode.FILE_STORAGE_ERROR.errorCode(), "Unable to read uploaded file");
-        }
-
-        FileMetadata metadata = new FileMetadata();
-        metadata.userId = user.id();
-        metadata.bucketName = properties.getBucket();
-        metadata.objectKey = objectKey;
-        metadata.originalName = originalName;
-        metadata.contentType = file.getContentType();
-        metadata.fileSize = file.getSize();
-        metadata.status = FileStatus.ACTIVE;
-        metadata.deleted = 0;
+        FileMetadata metadata = prepareMetadata(user, file);
+        putObject(file, metadata);
         try {
             mapper.insert(metadata);
         } catch (RuntimeException exception) {
@@ -83,6 +66,32 @@ public class FileServiceImpl implements FileService {
             throw exception;
         }
         return toVO(metadata);
+    }
+
+    @Override
+    public List<FileMetadataVO> uploadBatch(List<MultipartFile> files) {
+        CurrentUser user = currentUserProvider.requireCurrentUser();
+        if (files == null || files.isEmpty()) throw error(FileErrorCode.FILE_EMPTY);
+        if (files.size() > MAX_FILE_COUNT) throw error(FileErrorCode.FILE_COUNT_EXCEEDED);
+
+        List<FileMetadata> metadataList = files.stream()
+                .map(file -> prepareMetadata(user, file))
+                .toList();
+        List<FileMetadata> uploaded = new ArrayList<>(metadataList.size());
+        List<FileMetadata> inserted = new ArrayList<>(metadataList.size());
+        try {
+            for (int index = 0; index < files.size(); index++) {
+                FileMetadata metadata = metadataList.get(index);
+                putObject(files.get(index), metadata);
+                uploaded.add(metadata);
+                mapper.insert(metadata);
+                inserted.add(metadata);
+            }
+        } catch (RuntimeException exception) {
+            cleanupBatch(uploaded, inserted);
+            throw exception;
+        }
+        return inserted.stream().map(this::toVO).toList();
     }
 
     @Override
@@ -177,6 +186,48 @@ public class FileServiceImpl implements FileService {
             }
         }
         return result;
+    }
+
+    private FileMetadata prepareMetadata(CurrentUser user, MultipartFile file) {
+        validateUpload(file);
+        String originalName = safeOriginalName(file.getOriginalFilename());
+        if (originalName.length() > 255) throw error(FileErrorCode.FILE_NAME_TOO_LONG);
+
+        FileMetadata metadata = new FileMetadata();
+        metadata.userId = user.id();
+        metadata.bucketName = properties.getBucket();
+        metadata.objectKey = objectKey(user.id(), originalName);
+        metadata.originalName = originalName;
+        metadata.contentType = file.getContentType();
+        metadata.fileSize = file.getSize();
+        metadata.status = FileStatus.ACTIVE;
+        metadata.deleted = 0;
+        return metadata;
+    }
+
+    private void putObject(MultipartFile file, FileMetadata metadata) {
+        try (InputStream inputStream = file.getInputStream()) {
+            storage.put(metadata.bucketName, metadata.objectKey, inputStream,
+                    file.getSize(), file.getContentType());
+        } catch (IOException exception) {
+            throw new BusinessException(FileErrorCode.FILE_STORAGE_ERROR.errorCode(),
+                    "Unable to read uploaded file");
+        }
+    }
+
+    private void cleanupBatch(List<FileMetadata> uploaded, List<FileMetadata> inserted) {
+        for (FileMetadata metadata : inserted) {
+            try {
+                mapper.deleteById(metadata.id);
+            } catch (RuntimeException ignored) {
+            }
+        }
+        for (FileMetadata metadata : uploaded) {
+            try {
+                storage.delete(metadata.bucketName, metadata.objectKey);
+            } catch (RuntimeException ignored) {
+            }
+        }
     }
 
     private void validateUpload(MultipartFile file) {

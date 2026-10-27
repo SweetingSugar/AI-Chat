@@ -11,6 +11,7 @@ import com.example.aichat.file.enums.FileStatus;
 import com.example.aichat.file.mapper.FileMetadataMapper;
 import com.example.aichat.file.service.impl.FileServiceImpl;
 import com.example.aichat.file.storage.ObjectStorage;
+import com.example.aichat.file.vo.FileMetadataVO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,15 +22,22 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -149,6 +157,62 @@ class FileServiceImplTest {
 
         assertThatThrownBy(() -> service.validateOwnedActiveFiles(100L, java.util.List.of(1001L)))
                 .hasMessage("File access denied");
+    }
+
+    @Test
+    void uploadsBatchInInputOrder() {
+        MockMultipartFile first = new MockMultipartFile("files", "first.txt", "text/plain", "one".getBytes());
+        MockMultipartFile second = new MockMultipartFile("files", "second.txt", "text/plain", "two".getBytes());
+
+        List<FileMetadataVO> result = service.uploadBatch(List.of(first, second));
+
+        assertThat(result).extracting(FileMetadataVO::originalName)
+                .containsExactly("first.txt", "second.txt");
+        verify(storage, times(2)).put(eq("files"), any(), any(), anyLong(), eq("text/plain"));
+        verify(mapper, times(2)).insert(any(FileMetadata.class));
+    }
+
+    @Test
+    void rejectsBatchWithMoreThanMaximumFileCount() {
+        MockMultipartFile file = new MockMultipartFile("files", "a.txt", "text/plain", "hello".getBytes());
+
+        assertThatThrownBy(() -> service.uploadBatch(java.util.Collections.nCopies(11, file)))
+                .hasMessage("Too many files");
+
+        verifyNoInteractions(storage, mapper);
+    }
+
+    @Test
+    void rejectsBatchWhenOneFileIsInvalidBeforeWritingAnything() {
+        MockMultipartFile valid = new MockMultipartFile("files", "a.txt", "text/plain", "hello".getBytes());
+        MockMultipartFile invalid = new MockMultipartFile("files", "a.pdf", "application/pdf", "bad".getBytes());
+
+        assertThatThrownBy(() -> service.uploadBatch(List.of(valid, invalid)))
+                .hasMessage("File type is not allowed");
+
+        verifyNoInteractions(storage, mapper);
+    }
+
+    @Test
+    void cleansPreviouslyUploadedObjectsAndMetadataWhenLaterFileFails() {
+        MockMultipartFile first = new MockMultipartFile("files", "first.txt", "text/plain", "one".getBytes());
+        MockMultipartFile second = new MockMultipartFile("files", "second.txt", "text/plain", "two".getBytes());
+        AtomicInteger insertCount = new AtomicInteger();
+        doAnswer(invocation -> {
+            FileMetadata metadata = invocation.getArgument(0);
+            if (insertCount.incrementAndGet() == 2) {
+                throw new IllegalStateException("database failure");
+            }
+            metadata.id = 1L;
+            return 1;
+        }).when(mapper).insert(any(FileMetadata.class));
+
+        assertThatThrownBy(() -> service.uploadBatch(List.of(first, second)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("database failure");
+
+        verify(mapper).deleteById(1L);
+        verify(storage, times(2)).delete(eq("files"), any());
     }
 
     private FileMetadata metadata(Long userId, FileStatus status) {

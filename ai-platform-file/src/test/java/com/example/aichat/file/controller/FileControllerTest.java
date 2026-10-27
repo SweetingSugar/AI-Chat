@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -46,6 +47,21 @@ class FileControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(1));
+    }
+
+    @Test
+    void uploadsMultipleMultipartFiles() throws Exception {
+        when(service.uploadBatch(any())).thenReturn(List.of(
+                new FileMetadataVO(1L, 100L, "a.txt", "text/plain", 5L, null, null, null),
+                new FileMetadataVO(2L, 100L, "b.txt", "text/plain", 5L, null, null, null)));
+
+        mockMvc.perform(multipart("/api/files/batch")
+                        .file(new MockMultipartFile("files", "a.txt", "text/plain", "hello".getBytes()))
+                        .file(new MockMultipartFile("files", "b.txt", "text/plain", "world".getBytes())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].id").value(1))
+                .andExpect(jsonPath("$.data[1].id").value(2));
     }
 
     @Test
