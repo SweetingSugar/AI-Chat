@@ -1,4 +1,4 @@
-package com.example.aichat.file.controller;
+package com.example.aichat.admin.controller;
 
 import com.example.aichat.common.api.PageResult;
 import com.example.aichat.file.service.FileService;

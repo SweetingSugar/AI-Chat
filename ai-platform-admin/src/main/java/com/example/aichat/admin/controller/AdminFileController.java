@@ -1,4 +1,4 @@
-package com.example.aichat.file.controller;
+package com.example.aichat.admin.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.example.aichat.common.api.ApiResponse;
