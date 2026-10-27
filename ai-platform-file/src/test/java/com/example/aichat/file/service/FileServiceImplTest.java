@@ -160,6 +160,19 @@ class FileServiceImplTest {
     }
 
     @Test
+    void marksMetadataAsDeletedAfterStorageRemoval() {
+        FileMetadata metadata = metadata(100L, FileStatus.ACTIVE);
+        metadata.bucketName = "files";
+        metadata.objectKey = "users/100/a.txt";
+        when(mapper.selectById(1001L)).thenReturn(metadata);
+
+        service.deleteOwned(1001L);
+
+        verify(mapper, times(2)).updateById(metadata);
+        verify(mapper).deleteById(1001L);
+    }
+
+    @Test
     void uploadsBatchInInputOrder() {
         MockMultipartFile first = new MockMultipartFile("files", "first.txt", "text/plain", "one".getBytes());
         MockMultipartFile second = new MockMultipartFile("files", "second.txt", "text/plain", "two".getBytes());

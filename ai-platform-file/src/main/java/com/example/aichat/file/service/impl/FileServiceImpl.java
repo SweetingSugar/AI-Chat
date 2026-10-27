@@ -308,6 +308,7 @@ public class FileServiceImpl implements FileService {
         metadata.status = FileStatus.DELETED;
         metadata.deleted = 1;
         mapper.updateById(metadata);
+        mapper.deleteById(metadata.id);
     }
 
     private Map<Long, FileMetadata> byIds(List<Long> fileIds) {
