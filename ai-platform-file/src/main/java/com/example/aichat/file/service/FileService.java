@@ -1,0 +1,26 @@
+package com.example.aichat.file.service;
+
+import com.example.aichat.common.api.PageResult;
+import com.example.aichat.file.dto.FileQueryRequest;
+import com.example.aichat.file.vo.FileDownloadUrlVO;
+import com.example.aichat.file.vo.FileMetadataVO;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.web.multipart.MultipartFile;
+
+public interface FileService extends FileAccessService {
+    FileMetadataVO upload(MultipartFile file);
+
+    FileMetadataVO findAccessible(Long fileId);
+
+    InputStreamResource download(Long fileId);
+
+    FileDownloadUrlVO createDownloadUrl(Long fileId);
+
+    void deleteOwned(Long fileId);
+
+    PageResult<FileMetadataVO> page(FileQueryRequest request);
+
+    FileMetadataVO findByAdmin(Long fileId);
+
+    void deleteByAdmin(Long fileId);
+}

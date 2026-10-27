@@ -14,27 +14,33 @@ import com.example.aichat.chat.mapper.ChatMessageMapper;
 import com.example.aichat.chat.mapper.ChatSessionMapper;
 import com.example.aichat.chat.model.ChatGenerationResult;
 import com.example.aichat.chat.model.ChatMessagePair;
+import com.example.aichat.chat.service.ChatMessageFileService;
 import com.example.aichat.chat.service.ChatMessageService;
+import com.example.aichat.chat.vo.ChatMessageVO;
 import com.example.aichat.common.api.PageResult;
 import com.example.aichat.common.error.BusinessException;
 import com.example.aichat.common.security.CurrentUser;
+import com.example.aichat.file.vo.FileMetadataVO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ChatMessageServiceImpl implements ChatMessageService {
     private final ChatMessageMapper messageMapper;
     private final ChatSessionMapper sessionMapper;
     private final ChatUserGateway userGateway;
+    private final ChatMessageFileService messageFileService;
 
     public ChatMessageServiceImpl(ChatMessageMapper messageMapper, ChatSessionMapper sessionMapper,
-                                  ChatUserGateway userGateway) {
+                                  ChatUserGateway userGateway, ChatMessageFileService messageFileService) {
         this.messageMapper = messageMapper;
         this.sessionMapper = sessionMapper;
         this.userGateway = userGateway;
+        this.messageFileService = messageFileService;
     }
 
     @Override
@@ -51,15 +57,20 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             }
         }
         Page<ChatMessage> result = messageMapper.selectPage(new Page<>(query.page(), query.size()), wrapper);
-        return PageResult.from(result, ChatMessageConverter::toVO);
+        Map<Long, List<FileMetadataVO>> attachments = attachments(user.id(), result.getRecords());
+        return PageResult.from(result, message -> ChatMessageConverter.toVO(message,
+                attachments.getOrDefault(message.id, List.of())));
     }
 
     @Override
     public List<com.example.aichat.chat.vo.ChatMessageVO> listAll(Long sessionId) {
         CurrentUser user = userGateway.requireCurrentUser();
         requireOwnedSession(user.id(), sessionId);
-        return messageMapper.selectHistory(user.id(), sessionId, null).stream()
-                .map(ChatMessageConverter::toVO).toList();
+        List<ChatMessage> messages = messageMapper.selectHistory(user.id(), sessionId, null);
+        Map<Long, List<FileMetadataVO>> attachments = attachments(user.id(), messages);
+        return messages.stream()
+                .map(message -> ChatMessageConverter.toVO(message, attachments.getOrDefault(message.id, List.of())))
+                .toList();
     }
 
     @Override
@@ -175,6 +186,12 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 .eq("id", sessionId)
                 .eq("user_id", userId)
                 .set("last_message_time", LocalDateTime.now()));
+    }
+
+    private Map<Long, List<FileMetadataVO>> attachments(Long userId, List<ChatMessage> messages) {
+        if (messages.isEmpty()) return Map.of();
+        return messageFileService.findByMessageIds(userId,
+                messages.stream().map(message -> message.id).toList());
     }
 
     private void requireOwnedSession(Long userId, Long sessionId) {

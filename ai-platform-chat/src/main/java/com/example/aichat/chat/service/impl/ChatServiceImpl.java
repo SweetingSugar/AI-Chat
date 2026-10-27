@@ -17,9 +17,11 @@ import com.example.aichat.chat.service.ChatSessionService;
 import com.example.aichat.chat.vo.ChatStreamEventVO;
 import com.example.aichat.common.error.BusinessException;
 import com.example.aichat.common.security.CurrentUser;
+import com.example.aichat.file.service.FileAccessService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -28,17 +30,20 @@ public class ChatServiceImpl implements ChatService {
     private final ChatMessageService messageService;
     private final ChatUserGateway userGateway;
     private final AiModelGateway modelGateway;
+    private final FileAccessService fileAccessService;
     private final ChatStreamOrchestrator streamOrchestrator;
     private final ChatRegenerateOrchestrator regenerateOrchestrator;
 
     public ChatServiceImpl(ChatSessionService sessionService, ChatMessageService messageService,
                            ChatUserGateway userGateway, AiModelGateway modelGateway,
+                           FileAccessService fileAccessService,
                            ChatStreamOrchestrator streamOrchestrator,
                            ChatRegenerateOrchestrator regenerateOrchestrator) {
         this.sessionService = sessionService;
         this.messageService = messageService;
         this.userGateway = userGateway;
         this.modelGateway = modelGateway;
+        this.fileAccessService = fileAccessService;
         this.streamOrchestrator = streamOrchestrator;
         this.regenerateOrchestrator = regenerateOrchestrator;
     }
@@ -48,7 +53,10 @@ public class ChatServiceImpl implements ChatService {
         CurrentUser user = userGateway.requireCurrentUser();
         var session = sessionService.requireOwned(sessionId);
         AiModel model = modelGateway.resolve(request.modelId(), session.defaultModelId);
-        ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, request.content(), model.id,
+        List<Long> fileIds = fileAccessService.validateOwnedActiveFiles(user.id(), request.fileIds()).stream()
+                .map(file -> file.id())
+                .toList();
+        ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, request.content(), fileIds, model.id,
                 requestId(request.requestId()), request.temperature(), request.topP(), request.maxOutputTokens(), null, null);
         return streamOrchestrator.stream(command, model);
     }
@@ -63,7 +71,7 @@ public class ChatServiceImpl implements ChatService {
         }
         ChatMessage userMessage = messageService.findPreviousUser(source);
         AiModel model = modelGateway.resolve(request.modelId(), session.defaultModelId);
-        ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, userMessage.content, model.id,
+        ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, userMessage.content, List.of(), model.id,
                 requestId(request.requestId()), request.temperature(), request.topP(), request.maxOutputTokens(),
                 userMessage.id, source.id);
         return regenerateOrchestrator.stream(command, model);

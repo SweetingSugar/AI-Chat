@@ -17,6 +17,11 @@
         </dependency>
         <dependency>
             <groupId>com.example.aichat</groupId>
+            <artifactId>ai-platform-file</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.example.aichat</groupId>
             <artifactId>ai-platform-chat</artifactId>
             <version>${project.version}</version>
         </dependency>

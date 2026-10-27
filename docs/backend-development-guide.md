@@ -23,6 +23,7 @@
 ai-platform-boot
  ├─ ai-platform-admin   后台 AI 配置与统计接口
  ├─ ai-platform-chat    会话、消息、流式生成
+ ├─ ai-platform-file    MinIO 文件存储、元数据和附件关联能力
  ├─ ai-platform-system  用户、登录、角色、权限
  ├─ ai-platform-ai      模型配置、供应商适配、AI 调用与审计
  └─ ai-platform-common  统一响应、异常、当前用户与基础配置
@@ -34,6 +35,7 @@ ai-platform-boot
 | `system` | 注册登录、会话控制、用户、角色与权限管理 | `AuthController`、`UserController`、`RoleController`、`PermissionController` |
 | `ai` | AI 供应商/模型配置、凭证加密、模型路由、上下文裁剪、流式调用、调用日志与用量统计 | `DefaultAiChatService`、`AiModelRouter` |
 | `chat` | 聊天会话、消息历史、SSE 生成与重新生成、生成任务状态管理 | `ChatController`、`ChatStreamOrchestrator` |
+| `file` | MinIO 文件上传、下载、删除、元数据、预签名 URL、聊天附件关联 | `FileController`、`AdminFileController`、`FileServiceImpl` |
 | `admin` | 供应商与模型后台管理、看板及用户/聊天/Token 统计 | `AiProviderController`、`AiModelController`、`AdminStatisticsController` |
 | `boot` | 聚合各模块并作为可执行 Spring Boot 应用启动 | `AiPlatformApplication` |
 
@@ -155,6 +157,25 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 | 聊天统计 | `GET /api/admin/statistics/chat` | 会话、消息、生成任务、成功率及日趋势 |
 | Token 统计 | `GET /api/admin/statistics/tokens?groupBy=&page=&size=` | 调用与 Token 汇总，可按日、模型、供应商或用户分组 |
 
+### 3.7 文件上传和聊天附件
+
+文件能力由 `ai-platform-file` 独立模块提供，文件内容保存到私有 MinIO bucket，MySQL 只保存文件元数据和 `bucket_name`、`object_key`。预签名 URL 在请求时动态生成，不保存到数据库。
+
+| 功能 | 接口 | 说明 |
+| --- | --- | --- |
+| 上传文件 | `POST /api/files` | `multipart/form-data`，字段名为 `file` |
+| 查询文件 | `GET /api/files/{fileId}` | 只能查询当前用户自己的有效文件 |
+| 下载文件 | `GET /api/files/{fileId}/download` | 后端校验权限后返回文件流 |
+| 获取预签名 URL | `GET /api/files/{fileId}/presigned-url` | 默认有效期 1 小时 |
+| 删除文件 | `DELETE /api/files/{fileId}` | 删除 MinIO 对象并逻辑删除元数据 |
+| 管理员文件列表 | `GET /api/admin/files` | 需要 `file:read` |
+| 管理员文件详情 | `GET /api/admin/files/{fileId}` | 需要 `file:read` |
+| 管理员删除文件 | `DELETE /api/admin/files/{fileId}` | 需要 `file:delete` |
+
+文件状态包括 `ACTIVE`、`DELETING`、`DELETE_FAILED` 和 `DELETED`。普通用户只能访问自己上传且状态为 `ACTIVE` 的文件；聊天消息通过 `chat_message_file` 关联文件 ID。流式聊天请求可增加最多 10 个 `fileIds`，重新生成时沿用原用户消息的附件。
+
+当前阶段不解析文件内容，也不将附件内容注入 AI 上下文。
+
 ## 4. 数据存储
 
 数据库结构由 Flyway 自动迁移，迁移脚本位于各模块的 `src/main/resources/db/migration`。
@@ -165,7 +186,8 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 | 系统日志 | `sys_login_log`、`sys_operation_log` | 登录与操作日志表结构 |
 | AI 配置 | `ai_provider`、`ai_model` | 供应商凭证与模型参数 |
 | AI 审计 | `ai_call_log` | 每次模型调用的状态、耗时和 Token 用量 |
-| 聊天 | `chat_session`、`chat_message`、`chat_generation_task` | 会话、消息和生成任务 |
+| 聊天 | `chat_session`、`chat_message`、`chat_generation_task`、`chat_message_file` | 会话、消息、生成任务和消息附件关联 |
+| 文件 | `file_metadata` | MinIO 对象定位、文件名、类型、大小、状态和上传用户 |
 
 表之间通过 ID 字段形成业务关联，例如 `chat_session.user_id`、`chat_message.session_id`、`chat_message.generation_task_id`、`ai_model.provider_id`。迁移脚本为查询场景建立了会话列表、消息顺序、任务状态、调用日志和统计时间范围等索引。
 
@@ -195,6 +217,8 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 | HTTP | `SERVER_PORT` | 服务端口，默认 `8080` |
 | MySQL | `MYSQL_URL`、`MYSQL_USERNAME`、`MYSQL_PASSWORD` | 业务数据源，默认库名为 `ai_chat` |
 | Redis | `REDIS_HOST`、`REDIS_PORT`、`REDIS_PASSWORD`、`REDIS_DATABASE` | Sa-Token 与 RedisTemplate 连接 |
+| MinIO | `MINIO_ENDPOINT`、`MINIO_ACCESS_KEY`、`MINIO_SECRET_KEY`、`MINIO_BUCKET`、`MINIO_SECURE` | 私有文件对象存储 |
+| 文件限制 | `FILE_MAX_SIZE`、`FILE_MAX_REQUEST_SIZE`、`MINIO_PRESIGN_EXPIRE_SECONDS` | 上传大小、请求大小和预签名 URL 有效期 |
 | AI 凭证 | `AI_CREDENTIAL_ENCRYPTION_KEY` | 供应商 API Key 的 AES-256-GCM 加解密密钥 |
 | 线程池 | `ai.executor-*` | AI 执行器核心线程、最大线程与队列容量 |
 | Sa-Token | `SA_TOKEN_NAME`、`SA_TOKEN_TIMEOUT`、`SA_TOKEN_SIGNING_KEY` | Token 名称和会话有效期；当前使用 UUID Token，`SA_TOKEN_SIGNING_KEY` 映射到 JWT 密钥配置但未参与当前 UUID 登录流程 |
@@ -211,5 +235,6 @@ Flyway 在默认配置下开启，迁移位置为 `classpath:db/migration`；`de
 | AI 模型选择与供应商调用 | `AiModelRouter`、`AiModelFactory`、`DefaultAiChatService`、`provider/adapter` |
 | 流式聊天主链路 | `ChatServiceImpl`、`ChatStreamOrchestrator`、`ChatGenerationServiceImpl` |
 | 会话、消息持久化和历史上下文 | `ChatSessionServiceImpl`、`ChatMessageServiceImpl`、对应 Mapper XML |
+| 文件上传、MinIO 和附件关联 | `ai-platform-file` 的 `FileServiceImpl`、`MinioObjectStorage`；`ai-platform-chat` 的 `ChatMessageFileServiceImpl` |
 | 统计指标口径 | `AdminStatisticsServiceImpl`、`AdminStatisticsMapper.xml` |
 | 数据表字段与索引 | 各模块 `src/main/resources/db/migration/*.sql` |

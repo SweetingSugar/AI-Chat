@@ -43,6 +43,7 @@ satoken: <tokenValue>
 | 404 | `RESOURCE_NOT_FOUND` / `CHAT_CONVERSATION_NOT_FOUND` | 资源、消息或会话不存在，或不属于当前用户 |
 | 409 | `RESOURCE_CONFLICT` | 唯一性冲突、供应商仍有关联模型等 |
 | 502 | `AI_PROVIDER_ERROR` | AI 供应商调用异常 |
+| 503 | `FILE_STORAGE_ERROR` / `FILE_DELETE_FAILED` | MinIO 不可用或文件删除失败 |
 | 500 | `INTERNAL_ERROR` | 未处理的服务端异常 |
 
 `message` 在部分业务异常中是后端具体错误描述；前端应以 `code` 和 HTTP 状态作为稳定的分支依据。当前全局异常处理仅显式处理 DTO 校验和业务异常；请求参数的类型转换失败（例如日期、数字或布尔查询参数格式错误）、格式错误的 JSON、未知 JSON 枚举值或缺失必填查询参数，都可能以 `500 / INTERNAL_ERROR` 返回，不应在前端将其视为稳定的 400 契约。
@@ -199,7 +200,8 @@ satoken: <tokenValue>
   "errorCode": null,
   "errorMessage": null,
   "createTime": "2026-10-19T10:30:00",
-  "updateTime": "2026-10-19T10:30:03"
+  "updateTime": "2026-10-19T10:30:03",
+  "files": []
 }
 ```
 
@@ -218,6 +220,7 @@ satoken: <tokenValue>
 ```json
 {
   "content": "请解释这段代码",
+  "fileIds": [1001, 1002],
   "modelId": 3,
   "requestId": "client-generated-request-id",
   "temperature": 0.7,
@@ -229,6 +232,7 @@ satoken: <tokenValue>
 | 字段 | 必填 | 约束 / 说明 |
 | --- | --- | --- |
 | `content` | 是 | 非空，最长 100000 字符 |
+| `fileIds` | 否 | 文件 ID 数组，最多 10 个；文件必须属于当前用户且未删除 |
 | `modelId` | 否 | 指定本次模型；缺省时使用会话默认模型，再回退到系统默认模型 |
 | `requestId` | 否 | 最长 64 个字符；缺省时后端生成 UUID |
 | `temperature` | 否 | 0–2 |
@@ -279,7 +283,76 @@ data: {"type":"DELTA","taskId":50,"requestId":"8bf0f7e5-0a8f-4f9c-9a32-xxxxxxxxx
 
 `messageId` 必填，必须是当前会话中属于当前用户的助手消息；其余字段的取值范围与 3.3 相同。
 
-## 4. 后台用户、角色与权限
+## 4. 文件接口
+
+文件接口需要认证。文件对象存储在私有 MinIO bucket，前端只保存后端返回的 `fileId`，不要保存或拼接 MinIO object key。
+
+### 4.1 上传文件
+
+```http
+POST /api/files
+Content-Type: multipart/form-data
+```
+
+字段名必须为 `file`：
+
+```javascript
+const body = new FormData();
+body.append('file', selectedFile);
+await fetch('/api/files', { method: 'POST', headers: tokenHeaders, body });
+```
+
+成功响应的 `data`：
+
+```json
+{
+  "id": 1001,
+  "userId": 100,
+  "originalName": "report.pdf",
+  "contentType": "application/pdf",
+  "fileSize": 524288,
+  "status": "ACTIVE",
+  "createTime": "2026-10-27T15:30:00",
+  "updateTime": "2026-10-27T15:30:00"
+}
+```
+
+当前允许的文件类型包括 JPEG、PNG、GIF、PDF、TXT、DOC 和 DOCX；默认单文件及单请求大小均为 10 MB，具体限制以后端配置为准。
+
+### 4.2 查询、下载和删除
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| `GET /api/files/{fileId}` | 查询当前用户自己的文件元数据 |
+| `GET /api/files/{fileId}/download` | 返回文件二进制流 |
+| `GET /api/files/{fileId}/presigned-url` | 返回默认有效期 1 小时的临时 URL |
+| `DELETE /api/files/{fileId}` | 删除自己的文件 |
+
+预签名 URL 响应：
+
+```json
+{
+  "fileId": 1001,
+  "url": "https://minio.example.com/temporary-url",
+  "expiresIn": 3600
+}
+```
+
+预签名 URL 过期后需要重新调用接口获取，不能长期缓存。
+
+### 4.3 聊天附件
+
+上传成功后，将响应中的文件 ID 放入流式聊天请求的 `fileIds` 数组。消息历史中的每条消息包含 `files` 数组；文件被删除后，历史消息仍然存在，但该附件不会再提供有效下载地址。
+
+### 4.4 管理员文件接口
+
+| 方法与路径 | 权限 | 说明 |
+| --- | --- | --- |
+| `GET /api/admin/files?page=1&size=20` | `file:read` | 分页查询文件 |
+| `GET /api/admin/files/{fileId}` | `file:read` | 查询文件详情 |
+| `DELETE /api/admin/files/{fileId}` | `file:delete` | 删除任意用户文件 |
+
+## 5. 后台用户、角色与权限
 
 本节接口均需认证，并需要表中列出的权限码。用户接口返回的用户对象与 2.1 一致；角色、权限列表与详情均返回实体字段。
 
@@ -349,7 +422,7 @@ data: {"type":"DELTA","taskId":50,"requestId":"8bf0f7e5-0a8f-4f9c-9a32-xxxxxxxxx
 
 用户角色和角色权限分配请求中的 `ids` 必填，数组内每个 ID 都必须存在。两类分配均为**全量替换**：传入 `[]` 会清空当前全部关联，而不是追加关系。角色权限分配会注销拥有该角色的用户；用户角色分配当前不会立即注销被分配用户。
 
-## 5. 后台 AI 供应商与模型
+## 6. 后台 AI 供应商与模型
 
 本节接口均需认证。列表接口返回数组，详情、新增、修改返回单个对象，删除返回 `data: null`。
 
@@ -424,7 +497,7 @@ data: {"type":"DELTA","taskId":50,"requestId":"8bf0f7e5-0a8f-4f9c-9a32-xxxxxxxxx
 
 模型响应字段为 `id`、`providerId`、`providerName`、`modelCode`、`modelName`、`modelType`、`contextWindow`、`maxOutputTokens`、`temperature`、`topP`、`supportStream`、`defaultModel`、`configVersion`、`status`、`sort`、`remark`。其中 `supportStream` 与 `defaultModel` 为布尔值。
 
-## 6. 后台统计
+## 7. 后台统计
 
 统计接口均需认证、都要求日期参数 `from` 与 `to`，并需要各自权限。日期格式为 `YYYY-MM-DD`，查询区间为 `[from, to)`；`to` 必须晚于 `from`，最大跨度 365 天。
 
@@ -452,7 +525,7 @@ data: {"type":"DELTA","taskId":50,"requestId":"8bf0f7e5-0a8f-4f9c-9a32-xxxxxxxxx
 
 `groupBy` 可选值为 `DAY`、`MODEL`、`PROVIDER`、`USER`，缺省为 `DAY`，不区分大小写；`page` 默认 1，`size` 默认 20 且范围为 1–100，超出范围会直接报错。分页仅作用于 `groups` 数组；顶部汇总指标始终统计整个日期区间。`DAY` 分组仅返回有调用记录的日期并按日期升序，`MODEL`、`PROVIDER`、`USER` 分组按总 Token 降序。看板、用户和聊天的日趋势会为无数据日期补零，不能与 Token 的按日分组直接按数组下标对齐。Token 分组响应不提供 `total` 或 `pages`。
 
-## 7. 前端联调顺序
+## 8. 前端联调顺序
 
 1. 调用登录接口，保存 `tokenName` 与 `tokenValue`。
 2. 在所有受保护请求上携带该 Token Header。

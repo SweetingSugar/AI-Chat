@@ -7,8 +7,11 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+
 public record ChatRequestDTO(
         @NotBlank @Size(max = 100_000) String content,
+        @Size(max = 10) List<Long> fileIds,
         Long modelId,
         @Size(max = 64) String requestId,
         @DecimalMin("0.0") @DecimalMax("2.0") Double temperature,

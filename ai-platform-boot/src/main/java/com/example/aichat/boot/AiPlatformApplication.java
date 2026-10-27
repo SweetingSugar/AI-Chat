@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(scanBasePackages = "com.example.aichat")
 @MapperScan({"com.example.aichat.system.mapper", "com.example.aichat.ai.mapper", "com.example.aichat.chat.mapper",
-        "com.example.aichat.admin.mapper"})
+        "com.example.aichat.admin.mapper", "com.example.aichat.file.mapper"})
 public class AiPlatformApplication {
 
     private static final Log log = LogFactory.getLog(AiPlatformApplication.class);

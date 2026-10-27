@@ -9,6 +9,7 @@
     <name>AI Platform Parent</name>
     <modules>
         <module>ai-platform-common</module>
+        <module>ai-platform-file</module>
         <module>ai-platform-system</module>
         <module>ai-platform-ai</module>
         <module>ai-platform-chat</module>
@@ -23,6 +24,7 @@
         <langchain4j.version>1.21.0</langchain4j.version>
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <sa-token.version>1.46.0</sa-token.version>
+        <minio.version>8.6.0</minio.version>
         <maven.compiler.release>17</maven.compiler.release>
     </properties>
     <dependencyManagement>
@@ -55,6 +57,11 @@
                 <groupId>cn.dev33</groupId>
                 <artifactId>sa-token-redis-jackson</artifactId>
                 <version>${sa-token.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

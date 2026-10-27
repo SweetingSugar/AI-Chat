@@ -10,6 +10,7 @@ import com.example.aichat.chat.mapper.ChatGenerationTaskMapper;
 import com.example.aichat.chat.model.ChatGenerationCommand;
 import com.example.aichat.chat.model.ChatGenerationResult;
 import com.example.aichat.chat.service.ChatGenerationService;
+import com.example.aichat.chat.service.ChatMessageFileService;
 import com.example.aichat.chat.service.ChatMessageService;
 import com.example.aichat.common.error.BusinessException;
 import org.springframework.stereotype.Service;
@@ -21,10 +22,13 @@ import java.time.LocalDateTime;
 public class ChatGenerationServiceImpl implements ChatGenerationService {
     private final ChatGenerationTaskMapper taskMapper;
     private final ChatMessageService messageService;
+    private final ChatMessageFileService messageFileService;
 
-    public ChatGenerationServiceImpl(ChatGenerationTaskMapper taskMapper, ChatMessageService messageService) {
+    public ChatGenerationServiceImpl(ChatGenerationTaskMapper taskMapper, ChatMessageService messageService,
+                                    ChatMessageFileService messageFileService) {
         this.taskMapper = taskMapper;
         this.messageService = messageService;
+        this.messageFileService = messageFileService;
     }
 
     @Override
@@ -39,6 +43,7 @@ public class ChatGenerationServiceImpl implements ChatGenerationService {
             }
         } else {
             userMessage = messageService.saveUser(command.userId(), command.sessionId(), command.content(), command.requestId());
+            messageFileService.bind(userMessage.id, command.userId(), command.fileIds());
         }
         ChatMessage assistantMessage = messageService.saveAssistant(command.userId(), command.sessionId(), model.id,
                 command.requestId());

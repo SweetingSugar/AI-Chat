@@ -11,6 +11,8 @@ public enum ErrorCode {
     RESOURCE_CONFLICT(HttpStatus.CONFLICT, "RESOURCE_CONFLICT", "Resource already exists"),
     CHAT_CONVERSATION_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT_CONVERSATION_NOT_FOUND", "Conversation not found"),
     AI_PROVIDER_ERROR(HttpStatus.BAD_GATEWAY, "AI_PROVIDER_ERROR", "AI provider request failed"),
+    FILE_STORAGE_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "FILE_STORAGE_ERROR", "File storage service unavailable"),
+    FILE_DELETE_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "FILE_DELETE_FAILED", "File deletion failed"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Internal server error");
 
     private final HttpStatus httpStatus;
