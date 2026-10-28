@@ -170,6 +170,7 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 | 删除文件 | `DELETE /api/files/{fileId}` | 删除 MinIO 对象并逻辑删除元数据 |
 | 管理员文件列表 | `GET /api/admin/files` | 需要 `file:read` |
 | 管理员文件详情 | `GET /api/admin/files/{fileId}` | 需要 `file:read` |
+| 管理员获取文件预签名 URL | `GET /api/admin/files/{fileId}/presigned-url` | 需要 `file:download`，可访问任意用户的有效文件 |
 | 管理员删除文件 | `DELETE /api/admin/files/{fileId}` | 需要 `file:delete` |
 
 文件状态包括 `ACTIVE`、`DELETING`、`DELETE_FAILED` 和 `DELETED`。普通用户只能访问自己上传且状态为 `ACTIVE` 的文件；聊天消息通过 `chat_message_file` 关联文件 ID。流式聊天请求可增加最多 10 个 `fileIds`，重新生成时沿用原用户消息的附件。

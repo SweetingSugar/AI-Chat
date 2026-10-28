@@ -350,6 +350,7 @@ await fetch('/api/files', { method: 'POST', headers: tokenHeaders, body });
 | --- | --- | --- |
 | `GET /api/admin/files?page=1&size=20&createdFrom=2026-10-01&createdTo=2026-10-27` | `file:read` | 分页查询文件，日期参数格式为 `yyyy-MM-dd`，范围包含起止日期 |
 | `GET /api/admin/files/{fileId}` | `file:read` | 查询文件详情 |
+| `GET /api/admin/files/{fileId}/presigned-url` | `file:download` | 获取任意用户活动文件的临时下载 URL |
 | `DELETE /api/admin/files/{fileId}` | `file:delete` | 删除任意用户文件 |
 
 ## 5. 后台用户、角色与权限

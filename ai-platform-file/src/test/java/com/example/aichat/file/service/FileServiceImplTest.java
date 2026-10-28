@@ -11,6 +11,7 @@ import com.example.aichat.file.enums.FileStatus;
 import com.example.aichat.file.mapper.FileMetadataMapper;
 import com.example.aichat.file.service.impl.FileServiceImpl;
 import com.example.aichat.file.storage.ObjectStorage;
+import com.example.aichat.file.vo.FileDownloadUrlVO;
 import com.example.aichat.file.vo.FileMetadataVO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -130,6 +131,22 @@ class FileServiceImplTest {
         service.createDownloadUrl(1001L);
 
         verify(storage).createPresignedGetUrl(any(), any(), any());
+    }
+
+    @Test
+    void createsAdminPresignedUrlForActiveFileRegardlessOfOwner() {
+        FileMetadata metadata = metadata(200L, FileStatus.ACTIVE);
+        metadata.bucketName = "files";
+        metadata.objectKey = "users/200/a.txt";
+        when(mapper.selectById(1001L)).thenReturn(metadata);
+        when(storage.createPresignedGetUrl(any(), any(), any())).thenReturn("https://download.example/file");
+
+        FileDownloadUrlVO result = service.createAdminDownloadUrl(1001L);
+
+        assertThat(result.fileId()).isEqualTo(1001L);
+        assertThat(result.url()).isEqualTo("https://download.example/file");
+        verify(storage).createPresignedGetUrl(any(), any(), any());
+        verifyNoInteractions(currentUserProvider);
     }
 
     @Test

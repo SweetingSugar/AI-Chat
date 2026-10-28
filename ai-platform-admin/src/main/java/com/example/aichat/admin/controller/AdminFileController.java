@@ -5,6 +5,7 @@ import com.example.aichat.common.api.ApiResponse;
 import com.example.aichat.common.api.PageResult;
 import com.example.aichat.file.dto.FileQueryRequest;
 import com.example.aichat.file.service.FileService;
+import com.example.aichat.file.vo.FileDownloadUrlVO;
 import com.example.aichat.file.vo.FileMetadataVO;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +33,12 @@ public class AdminFileController {
     @SaCheckPermission("file:read")
     public ApiResponse<FileMetadataVO> get(@PathVariable("fileId") Long fileId) {
         return ApiResponse.success(service.findByAdmin(fileId));
+    }
+
+    @GetMapping("/{fileId}/presigned-url")
+    @SaCheckPermission("file:download")
+    public ApiResponse<FileDownloadUrlVO> presignedUrl(@PathVariable("fileId") Long fileId) {
+        return ApiResponse.success(service.createAdminDownloadUrl(fileId));
     }
 
     @DeleteMapping("/{fileId}")

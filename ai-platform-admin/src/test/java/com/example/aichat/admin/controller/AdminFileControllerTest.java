@@ -3,6 +3,7 @@ package com.example.aichat.admin.controller;
 import com.example.aichat.common.api.PageResult;
 import com.example.aichat.file.dto.FileQueryRequest;
 import com.example.aichat.file.service.FileService;
+import com.example.aichat.file.vo.FileDownloadUrlVO;
 import com.example.aichat.file.vo.FileMetadataVO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,19 @@ class AdminFileControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.records[0].id").value(1));
+    }
+
+    @Test
+    void generatesPresignedUrlForAnyFileWithDownloadPermission() throws Exception {
+        when(service.createAdminDownloadUrl(1L))
+                .thenReturn(new FileDownloadUrlVO(1L, "https://download.example/file", 600L));
+
+        mockMvc.perform(get("/api/admin/files/1/presigned-url"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.fileId").value(1))
+                .andExpect(jsonPath("$.data.url").value("https://download.example/file"))
+                .andExpect(jsonPath("$.data.expiresIn").value(600));
     }
 
     @Test

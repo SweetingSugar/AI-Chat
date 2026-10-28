@@ -112,10 +112,14 @@ public class FileServiceImpl implements FileService {
     @Override
     public FileDownloadUrlVO createDownloadUrl(Long fileId) {
         FileMetadata metadata = findAccessibleMetadata(fileId);
-        long expiresIn = properties.getPresignExpireSeconds();
-        String url = storage.createPresignedGetUrl(metadata.bucketName, metadata.objectKey,
-                Duration.ofSeconds(expiresIn));
-        return new FileDownloadUrlVO(metadata.id, url, expiresIn);
+        return createDownloadUrl(metadata);
+    }
+
+    @Override
+    public FileDownloadUrlVO createAdminDownloadUrl(Long fileId) {
+        FileMetadata metadata = findRequired(fileId);
+        requireActive(metadata);
+        return createDownloadUrl(metadata);
     }
 
     @Override
@@ -269,6 +273,13 @@ public class FileServiceImpl implements FileService {
             if (value[index] != prefix[index]) return false;
         }
         return true;
+    }
+
+    private FileDownloadUrlVO createDownloadUrl(FileMetadata metadata) {
+        long expiresIn = properties.getPresignExpireSeconds();
+        String url = storage.createPresignedGetUrl(metadata.bucketName, metadata.objectKey,
+                Duration.ofSeconds(expiresIn));
+        return new FileDownloadUrlVO(metadata.id, url, expiresIn);
     }
 
     private FileMetadata findAccessibleMetadata(Long fileId) {

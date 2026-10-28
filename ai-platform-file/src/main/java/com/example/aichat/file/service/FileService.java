@@ -20,6 +20,8 @@ public interface FileService extends FileAccessService {
 
     FileDownloadUrlVO createDownloadUrl(Long fileId);
 
+    FileDownloadUrlVO createAdminDownloadUrl(Long fileId);
+
     void deleteOwned(Long fileId);
 
     PageResult<FileMetadataVO> page(FileQueryRequest request);
