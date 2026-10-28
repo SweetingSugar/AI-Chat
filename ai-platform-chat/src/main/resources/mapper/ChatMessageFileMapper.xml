@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.aichat.chat.mapper.ChatMessageFileMapper">
+    <select id="selectByMessageIds" resultType="com.example.aichat.chat.entity.ChatMessageFile">
+        select id, message_id, file_id, sort_order, create_time
+        from chat_message_file
+        where message_id in
+        <foreach collection="messageIds" item="messageId" open="(" separator="," close=")">
+            #{messageId}
+        </foreach>
+        order by message_id, sort_order, id
+    </select>
+</mapper>
