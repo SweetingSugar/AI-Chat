@@ -20,6 +20,7 @@ public record AiModelUpsertRequest(
         @DecimalMin("0.0") @DecimalMax("2.0") BigDecimal temperature,
         @DecimalMin("0.0") @DecimalMax("1.0") BigDecimal topP,
         @Min(0) @Max(1) Integer supportStream,
+        @Min(0) @Max(1) Integer supportVision,
         @Min(0) @Max(1) Integer isDefault,
         @Min(0) @Max(1) Integer status,
         @Min(0) Integer sort,

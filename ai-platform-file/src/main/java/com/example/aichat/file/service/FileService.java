@@ -9,7 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
-public interface FileService extends FileAccessService {
+public interface FileService extends FileAccessService, FileContentService {
     FileMetadataVO upload(MultipartFile file);
 
     List<FileMetadataVO> uploadBatch(List<MultipartFile> files);

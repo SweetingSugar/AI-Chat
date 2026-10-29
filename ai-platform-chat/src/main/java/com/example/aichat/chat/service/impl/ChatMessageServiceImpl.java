@@ -139,9 +139,14 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     @Override
     public List<ChatMessagePair> context(Long userId, Long sessionId, Long beforeSequence) {
-        return messageMapper.selectHistory(userId, sessionId, beforeSequence).stream()
+        List<ChatMessage> history = messageMapper.selectHistory(userId, sessionId, beforeSequence).stream()
                 .filter(message -> message.role == ChatMessageRole.USER || message.status == ChatMessageStatus.COMPLETED)
-                .map(message -> new ChatMessagePair(message.role, message.content))
+                .toList();
+        Map<Long, List<Long>> fileIds = messageFileService.findFileIdsByMessageIds(
+                history.stream().map(message -> message.id).toList());
+        return history.stream()
+                .map(message -> new ChatMessagePair(message.role, message.content,
+                        fileIds.getOrDefault(message.id, List.of())))
                 .toList();
     }
 

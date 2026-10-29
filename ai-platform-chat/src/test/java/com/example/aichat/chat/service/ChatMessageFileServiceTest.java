@@ -62,6 +62,22 @@ class ChatMessageFileServiceTest {
     }
 
     @Test
+    void returnsFileIdsGroupedInRelationOrder() {
+        ChatMessageFile first = new ChatMessageFile();
+        first.messageId = 20L;
+        first.fileId = 11L;
+        first.sortOrder = 0;
+        ChatMessageFile second = new ChatMessageFile();
+        second.messageId = 20L;
+        second.fileId = 10L;
+        second.sortOrder = 1;
+        when(mapper.selectByMessageIds(List.of(20L))).thenReturn(List.of(first, second));
+
+        assertThat(service.findFileIdsByMessageIds(List.of(20L)))
+                .containsEntry(20L, List.of(11L, 10L));
+    }
+
+    @Test
     void preservesRequestedFileOrder() {
         when(fileAccessService.validateOwnedActiveFiles(100L, List.of(11L, 10L)))
                 .thenReturn(List.of(file(11L), file(10L)));

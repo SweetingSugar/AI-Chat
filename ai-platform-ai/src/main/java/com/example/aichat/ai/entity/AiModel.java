@@ -21,6 +21,7 @@ public class AiModel {
     public BigDecimal temperature;
     public BigDecimal topP;
     public Integer supportStream;
+    public Integer supportVision;
     public Integer isDefault;
     public Integer configVersion;
     public Integer status;
@@ -111,6 +112,14 @@ public class AiModel {
 
     public void setSupportStream(Integer supportStream) {
         this.supportStream = supportStream;
+    }
+
+    public Integer getSupportVision() {
+        return supportVision;
+    }
+
+    public void setSupportVision(Integer supportVision) {
+        this.supportVision = supportVision;
     }
 
     public Integer getIsDefault() {

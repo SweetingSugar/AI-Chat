@@ -4,9 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.aichat.common.api.PageResult;
 import com.example.aichat.common.error.BusinessException;
+import com.example.aichat.common.error.ErrorCode;
 import com.example.aichat.common.security.CurrentUser;
 import com.example.aichat.common.security.CurrentUserProvider;
 import com.example.aichat.file.config.FileStorageProperties;
+import com.example.aichat.file.content.FileContent;
+import com.example.aichat.file.content.PdfTextExtractor;
 import com.example.aichat.file.dto.FileQueryRequest;
 import com.example.aichat.file.entity.FileMetadata;
 import com.example.aichat.file.enums.FileStatus;
@@ -23,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -41,13 +45,16 @@ public class FileServiceImpl implements FileService {
     private final ObjectStorage storage;
     private final CurrentUserProvider currentUserProvider;
     private final FileStorageProperties properties;
+    private final PdfTextExtractor pdfTextExtractor;
 
     public FileServiceImpl(FileMetadataMapper mapper, ObjectStorage storage,
-                           CurrentUserProvider currentUserProvider, FileStorageProperties properties) {
+                           CurrentUserProvider currentUserProvider, FileStorageProperties properties,
+                           PdfTextExtractor pdfTextExtractor) {
         this.mapper = mapper;
         this.storage = storage;
         this.currentUserProvider = currentUserProvider;
         this.properties = properties;
+        this.pdfTextExtractor = pdfTextExtractor;
     }
 
     @Override
@@ -190,6 +197,42 @@ public class FileServiceImpl implements FileService {
             }
         }
         return result;
+    }
+
+    @Override
+    public List<FileContent> readOwnedActive(Long userId, List<Long> fileIds) {
+        List<Long> ids = uniqueIds(fileIds);
+        if (ids.isEmpty()) return List.of();
+        Map<Long, FileMetadata> records = byIds(ids);
+        List<FileContent> result = new ArrayList<>(ids.size());
+        for (Long fileId : ids) {
+            FileMetadata metadata = records.get(fileId);
+            if (metadata == null) throw error(FileErrorCode.FILE_NOT_FOUND);
+            requireOwner(metadata, userId);
+            requireActive(metadata);
+            byte[] bytes;
+            try (InputStream input = storage.get(metadata.bucketName, metadata.objectKey)) {
+                bytes = input.readAllBytes();
+            } catch (IOException exception) {
+                throw new BusinessException(ErrorCode.FILE_STORAGE_ERROR, "Unable to read file content", exception);
+            }
+            result.add(toFileContent(metadata, bytes));
+        }
+        return result;
+    }
+
+    private FileContent toFileContent(FileMetadata metadata, byte[] bytes) {
+        String contentType = metadata.contentType.toLowerCase(Locale.ROOT);
+        return switch (contentType) {
+            case "text/plain" -> new FileContent(metadata.id, metadata.originalName, contentType,
+                    new String(bytes, StandardCharsets.UTF_8), null);
+            case "application/pdf" -> new FileContent(metadata.id, metadata.originalName, contentType,
+                    pdfTextExtractor.extract(bytes), null);
+            case "image/jpeg", "image/png", "image/gif" -> new FileContent(metadata.id,
+                    metadata.originalName, contentType, null, bytes);
+            default -> throw new BusinessException(ErrorCode.AI_FILE_TYPE_NOT_SUPPORTED,
+                    "File type is not supported for AI analysis");
+        };
     }
 
     private FileMetadata prepareMetadata(CurrentUser user, MultipartFile file) {

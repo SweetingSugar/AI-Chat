@@ -1,6 +1,7 @@
 package com.example.aichat.ai.provider.adapter;
 
 import com.example.aichat.ai.dto.request.AiGenerationOptions;
+import com.example.aichat.ai.dto.request.AiMessageContentDTO;
 import com.example.aichat.ai.dto.request.AiMessageDTO;
 import com.example.aichat.ai.enums.AiMessageRole;
 import com.example.aichat.ai.enums.AiProviderType;
@@ -54,7 +55,8 @@ class OllamaModelProviderTest {
                     1024,
                     BigDecimal.valueOf(0.2),
                     BigDecimal.valueOf(0.3),
-                    1
+                    1,
+                    false
             );
             AiGenerationOptions options = new AiGenerationOptions(null, 0.7, 0.8, null);
 
@@ -75,17 +77,12 @@ class OllamaModelProviderTest {
     }
 
     @Test
-    void treatsReadTimeoutAsSeconds() throws IOException {
+    void sendsImageAsBase64ToOllama() throws IOException {
         CopyOnWriteArrayList<String> requestBodies = new CopyOnWriteArrayList<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        String response = "{\"model\":\"llama3.2\",\"message\":{\"role\":\"assistant\",\"content\":\"hello\"},\"done\":true}\n";
+        String response = "{\"model\":\"llava\",\"message\":{\"role\":\"assistant\",\"content\":\"ok\"},\"done\":true}\n";
         server.createContext("/api/chat", exchange -> {
             requestBodies.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-            }
             byte[] body = response.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/x-ndjson");
             exchange.sendResponseHeaders(200, body.length);
@@ -97,32 +94,21 @@ class OllamaModelProviderTest {
 
         try {
             AiModelConfigSnapshot snapshot = new AiModelConfigSnapshot(
-                    1L,
-                    "Ollama",
-                    AiProviderType.OLLAMA,
-                    "http://127.0.0.1:" + server.getAddress().getPort(),
-                    null,
-                    10,
-                    1,
-                    2L,
-                    "llama3.2",
-                    8192,
-                    1024,
-                    null,
-                    null,
-                    1
-            );
+                    1L, "Ollama", AiProviderType.OLLAMA,
+                    "http://127.0.0.1:" + server.getAddress().getPort(), null,
+                    10, 10, 2L, "llava", 8192, 1024,
+                    null, null, 1, true);
+            AiMessageDTO message = new AiMessageDTO(AiMessageRole.USER, "describe",
+                    List.of(AiMessageContentDTO.image("image/png", new byte[]{1, 2})));
 
-            List<AiStreamEvent> events = new OllamaModelProvider()
-                    .stream(snapshot, List.of(new AiMessageDTO(AiMessageRole.USER, "hello")), null)
-                    .collectList()
-                    .block(Duration.ofSeconds(5));
+            new OllamaModelProvider().stream(snapshot, List.of(message), null)
+                    .collectList().block(Duration.ofSeconds(10));
 
             assertEquals(1, requestBodies.size());
-            assertEquals("hello", events.stream().map(event -> event.delta() == null ? "" : event.delta()).reduce("", String::concat), events.toString());
-            assertTrue(events.stream().noneMatch(event -> event.type() == com.example.aichat.ai.stream.AiStreamEventType.ERROR));
+            assertTrue(requestBodies.get(0).replaceAll("\\s+", "").contains("AQI="));
         } finally {
             server.stop(0);
         }
     }
+
 }

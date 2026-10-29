@@ -134,6 +134,7 @@ public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
         model.setTemperature(request.temperature());
         model.setTopP(request.topP());
         model.setSupportStream(request.supportStream() == null ? 1 : request.supportStream());
+        model.setSupportVision(request.supportVision() == null ? 0 : request.supportVision());
         model.setIsDefault(request.isDefault() == null ? 0 : request.isDefault());
         model.setStatus(request.status() == null ? 1 : request.status());
         model.setSort(request.sort() == null ? 0 : request.sort());
@@ -157,7 +158,9 @@ public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
     private AiModelManagementDTO toManagementDto(AiModel model, AiProvider provider) {
         return new AiModelManagementDTO(model.getId(), model.getProviderId(), provider.getProviderName(), model.getModelCode(),
                 model.getModelName(), model.getModelType(), model.getContextWindow(), model.getMaxOutputTokens(), model.getTemperature(),
-                model.getTopP(), Integer.valueOf(1).equals(model.getSupportStream()), Integer.valueOf(1).equals(model.getIsDefault()),
+                model.getTopP(), Integer.valueOf(1).equals(model.getSupportStream()),
+                Integer.valueOf(1).equals(model.getSupportVision()),
+                Integer.valueOf(1).equals(model.getIsDefault()),
                 model.getConfigVersion(), model.getStatus(), model.getSort(), model.getRemark());
     }
 
@@ -169,6 +172,6 @@ public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
     private AiModelDTO toDto(AiModel model, AiProvider provider) {
         return new AiModelDTO(model.id, model.providerId, provider.providerName, model.modelCode, model.modelName,
                 model.contextWindow, model.maxOutputTokens, Integer.valueOf(1).equals(model.supportStream),
-                Integer.valueOf(1).equals(model.isDefault));
+                Integer.valueOf(1).equals(model.supportVision), Integer.valueOf(1).equals(model.isDefault));
     }
 }

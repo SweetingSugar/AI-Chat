@@ -39,6 +39,17 @@ public class ChatMessageFileServiceImpl implements ChatMessageFileService {
     }
 
     @Override
+    public Map<Long, List<Long>> findFileIdsByMessageIds(List<Long> messageIds) {
+        if (messageIds == null || messageIds.isEmpty()) return Map.of();
+        Map<Long, List<Long>> result = new LinkedHashMap<>();
+        messageIds.forEach(messageId -> result.put(messageId, new ArrayList<>()));
+        for (ChatMessageFile relation : mapper.selectByMessageIds(messageIds)) {
+            result.computeIfAbsent(relation.messageId, ignored -> new ArrayList<>()).add(relation.fileId);
+        }
+        return result;
+    }
+
+    @Override
     public Map<Long, List<FileMetadataVO>> findByMessageIds(Long userId, List<Long> messageIds) {
         if (messageIds == null || messageIds.isEmpty()) return Map.of();
         Map<Long, List<FileMetadataVO>> result = new LinkedHashMap<>();

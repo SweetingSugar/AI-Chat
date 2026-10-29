@@ -25,6 +25,7 @@
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <sa-token.version>1.46.0</sa-token.version>
         <minio.version>8.6.0</minio.version>
+        <pdfbox.version>3.0.5</pdfbox.version>
         <maven.compiler.release>17</maven.compiler.release>
     </properties>
     <dependencyManagement>
@@ -62,6 +63,11 @@
                 <groupId>io.minio</groupId>
                 <artifactId>minio</artifactId>
                 <version>${minio.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>pdfbox</artifactId>
+                <version>${pdfbox.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

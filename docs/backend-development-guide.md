@@ -70,7 +70,7 @@ ai-platform-boot
 
 - 供应商配置包含供应商代码、名称、类型、`baseUrl`、连接/读取超时、启用状态和排序。
 - API Key 入库前使用 AES-256-GCM 加密，密文带 `v1:` 版本前缀；模型调用前解密。
-- 模型配置包含所属供应商、模型代码和名称、上下文窗口、最大输出 Token、默认 `temperature` / `topP`、流式支持标记、默认模型标记与启用状态。
+- 模型配置包含所属供应商、模型代码和名称、上下文窗口、最大输出 Token、默认 `temperature` / `topP`、流式支持标记、视觉能力标记、默认模型标记与启用状态。
 - 已注册四种供应商类型：`OPENAI`、`DEEPSEEK`、`QWEN`、`OLLAMA`。前三者通过 OpenAI 兼容的 LangChain4j 流式模型适配器发起调用；`OLLAMA` 使用 LangChain4j 原生 Ollama 流式适配器。
 - Ollama 供应商通常将 `baseUrl` 配置为 `http://localhost:11434`，模型代码填写 Ollama 中已拉取的模型名；原生 Ollama 不要求 API Key。
 - 路由优先级为：请求指定模型 → 会话默认模型 → 系统默认且已启用的模型；路由后还会校验其供应商处于启用状态。
@@ -175,7 +175,16 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 
 文件状态包括 `ACTIVE`、`DELETING`、`DELETE_FAILED` 和 `DELETED`。普通用户只能访问自己上传且状态为 `ACTIVE` 的文件；聊天消息通过 `chat_message_file` 关联文件 ID。流式聊天请求可增加最多 10 个 `fileIds`，重新生成时沿用原用户消息的附件。
 
-当前阶段不解析文件内容，也不将附件内容注入 AI 上下文。
+附件进入 AI 上下文时按 MIME 类型处理：
+
+| MIME 类型 | AI 处理方式 | 模型要求 |
+| --- | --- | --- |
+| `text/plain` | 服务端按 UTF-8 读取并注入文本上下文 | 无 |
+| `application/pdf` | 服务端使用 PDFBox 提取文本并注入上下文 | 无 |
+| `image/jpeg`、`image/png`、`image/gif` | 服务端读取字节并作为 Base64 图片内容块传递 | `supportVision = 1` |
+| DOC/DOCX | 当前不支持 AI 内容分析 | 不适用 |
+
+模型请求不会使用私有 MinIO URL。后续多轮追问会从历史用户消息的 `chat_message_file` 关系恢复附件；如果历史消息因上下文预算被裁剪，附件也会一并裁剪。当前阶段不实现 OCR 或扫描 PDF 页面识别。
 
 ## 4. 数据存储
 

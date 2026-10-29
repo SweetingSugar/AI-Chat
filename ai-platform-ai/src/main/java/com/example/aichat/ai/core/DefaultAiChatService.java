@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Service
 public class DefaultAiChatService implements AiChatService {
     private final AiRequestValidator validator;
+    private final AiModelCapabilityValidator capabilityValidator;
     private final AiModelRouter router;
     private final AiModelFactory factory;
     private final ContextBuilder contextBuilder;
@@ -28,9 +29,12 @@ public class DefaultAiChatService implements AiChatService {
     private final TokenUsageCalculator tokenUsageCalculator;
     private final AiResponseAssembler responseAssembler;
 
-    public DefaultAiChatService(AiRequestValidator validator, AiModelRouter router, AiModelFactory factory, ContextBuilder contextBuilder,
-                                AiUsageRecorder usageRecorder, TokenUsageCalculator tokenUsageCalculator, AiResponseAssembler responseAssembler) {
+    public DefaultAiChatService(AiRequestValidator validator, AiModelCapabilityValidator capabilityValidator,
+                                AiModelRouter router, AiModelFactory factory, ContextBuilder contextBuilder,
+                                AiUsageRecorder usageRecorder, TokenUsageCalculator tokenUsageCalculator,
+                                AiResponseAssembler responseAssembler) {
         this.validator = validator;
+        this.capabilityValidator = capabilityValidator;
         this.router = router;
         this.factory = factory;
         this.contextBuilder = contextBuilder;
@@ -45,6 +49,7 @@ public class DefaultAiChatService implements AiChatService {
             validator.validate(request);
             String requestId = request.requestId() == null || request.requestId().isBlank() ? UUID.randomUUID().toString() : request.requestId();
             AiModelConfigSnapshot snapshot = router.route(request.options());
+            capabilityValidator.validate(request, snapshot);
             AiCallLog log = usageRecorder.start(requestId, request, snapshot);
             StringBuilder output = new StringBuilder();
             AtomicBoolean terminal = new AtomicBoolean();

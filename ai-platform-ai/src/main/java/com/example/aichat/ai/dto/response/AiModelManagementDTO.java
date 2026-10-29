@@ -14,6 +14,7 @@ public record AiModelManagementDTO(
         BigDecimal temperature,
         BigDecimal topP,
         boolean supportStream,
+        boolean supportVision,
         boolean defaultModel,
         Integer configVersion,
         Integer status,

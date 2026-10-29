@@ -9,7 +9,7 @@ import java.util.List;
 @Component
 public class TokenUsageCalculator {
     public AiTokenUsage estimate(List<AiMessageDTO> input, String output) {
-        int inputTokens = input.stream().mapToInt(message -> tokens(message.content())).sum();
+        int inputTokens = input.stream().mapToInt(AiMessageDTO::estimatedInputTokens).sum();
         int outputTokens = tokens(output);
         return new AiTokenUsage(inputTokens, outputTokens, inputTokens + outputTokens, "ESTIMATED");
     }

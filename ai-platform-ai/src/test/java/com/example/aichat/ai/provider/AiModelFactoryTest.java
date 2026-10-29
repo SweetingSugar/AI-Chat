@@ -28,7 +28,8 @@ class AiModelFactoryTest {
                 1024,
                 BigDecimal.valueOf(0.7),
                 BigDecimal.valueOf(0.9),
-                1
+                1,
+                false
         );
 
         assertSame(ollamaProvider, factory.get(snapshot));

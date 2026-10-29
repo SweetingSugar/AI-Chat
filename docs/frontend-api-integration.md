@@ -154,7 +154,7 @@ satoken: <tokenValue>
 
 `GET /api/chat/models`
 
-返回当前已启用且供应商可用的模型数组，供创建会话或发起对话时选择 `modelId`。响应模型字段为 `id`、`providerId`、`providerName`、`modelCode`、`modelName`、`contextWindow`、`maxOutputTokens`、`supportStream` 和 `defaultModel`。
+返回当前已启用且供应商可用的模型数组，供创建会话或发起对话时选择 `modelId`。响应模型字段为 `id`、`providerId`、`providerName`、`modelCode`、`modelName`、`contextWindow`、`maxOutputTokens`、`supportStream`、`supportVision` 和 `defaultModel`。包含图片附件时只能选择 `supportVision: true` 的模型。
 
 ### 3.2 会话
 
@@ -281,7 +281,7 @@ data: {"type":"DELTA","taskId":50,"requestId":"8bf0f7e5-0a8f-4f9c-9a32-xxxxxxxxx
 }
 ```
 
-`messageId` 必填，必须是当前会话中属于当前用户的助手消息；其余字段的取值范围与 3.3 相同。
+`messageId` 必填，必须是当前会话中属于当前用户的助手消息；其余字段的取值范围与 3.3 相同。重新生成会沿用源用户消息已经关联的文件，不需要再次提交 `fileIds`。
 
 ## 4. 文件接口
 
@@ -317,7 +317,7 @@ await fetch('/api/files', { method: 'POST', headers: tokenHeaders, body });
 }
 ```
 
-当前允许的文件类型包括 JPEG、PNG、GIF、PDF、TXT、DOC 和 DOCX；默认单文件及单请求大小均为 10 MB，具体限制以后端配置为准。
+当前允许上传的文件类型包括 JPEG、PNG、GIF、PDF、TXT、DOC 和 DOCX；默认单文件及单请求大小均为 10 MB，具体限制以后端配置为准。其中 JPEG、PNG、GIF、PDF 和 TXT 可用于 AI 内容分析，DOC/DOCX 当前仅支持存储和下载，不会注入模型上下文。
 
 ### 4.2 查询、下载和删除
 
@@ -342,7 +342,28 @@ await fetch('/api/files', { method: 'POST', headers: tokenHeaders, body });
 
 ### 4.3 聊天附件
 
-上传成功后，将响应中的文件 ID 放入流式聊天请求的 `fileIds` 数组。消息历史中的每条消息包含 `files` 数组；文件被删除后，历史消息仍然存在，但该附件不会再提供有效下载地址。
+上传成功后，将响应中的文件 ID 放入首次附加该文件的流式聊天请求的 `fileIds` 数组：
+
+```json
+{
+  "content": "请总结这个文件",
+  "fileIds": [1001]
+}
+```
+
+后续追问可以省略 `fileIds`，服务端会从历史用户消息恢复附件并继续带入上下文。文本文件和 PDF 由服务端读取/解析后传给模型；图片以 Base64 内容块传给模型，不使用私有 MinIO URL。消息历史中的每条消息包含 `files` 数组；文件被删除后，历史消息仍然存在，但该附件不会再提供有效下载地址。若请求包含图片，所选模型必须返回 `supportVision: true`。
+
+AI 附件相关错误码如下：
+
+| 错误码 | 含义 |
+| --- | --- |
+| `AI_FILE_TYPE_NOT_SUPPORTED` | 文件类型不支持 AI 内容分析，或图片内容无效 |
+| `AI_FILE_PARSE_FAILED` | PDF 内容解析失败 |
+| `AI_FILE_CONTENT_EMPTY` | PDF 未提取到文本内容 |
+| `AI_FILE_CONTENT_TOO_LARGE` | 当前消息附件超出模型可用上下文预算 |
+| `AI_VISION_NOT_SUPPORTED` | 当前模型不支持图片输入 |
+
+这些错误可能在流创建前作为普通 JSON 返回，也可能在生成任务已创建后通过 `failed` SSE 事件返回；前端应同时读取 JSON 响应中的 `code` 和 SSE `data.errorCode`。
 
 ### 4.4 管理员文件接口
 
@@ -487,6 +508,7 @@ await fetch('/api/files', { method: 'POST', headers: tokenHeaders, body });
   "temperature": 0.7,
   "topP": 0.9,
   "supportStream": 1,
+  "supportVision": 1,
   "isDefault": 1,
   "status": 1,
   "sort": 0,
@@ -494,9 +516,9 @@ await fetch('/api/files', { method: 'POST', headers: tokenHeaders, body });
 }
 ```
 
-`providerId`、`modelCode`、`modelName`、`modelType` 必填；`modelCode`、`modelName` 最长 100，`modelType` 最长 32，`remark` 最长 500。模型代码在同一供应商下唯一。`contextWindow`、`maxOutputTokens` 为正整数；`temperature` 为 0–2；`topP` 为 0–1；`supportStream`、`isDefault`、`status` 为 `0` 或 `1`；`sort` 为非负整数。启用模型时其供应商也必须启用。设置 `isDefault: 1` 会清除其他模型的默认标记。可选字段的默认值分别是：上下文窗口 8192、最大输出 Token 1024、流式支持 1、默认模型 0、状态 1、排序 0。
+`providerId`、`modelCode`、`modelName`、`modelType` 必填；`modelCode`、`modelName` 最长 100，`modelType` 最长 32，`remark` 最长 500。模型代码在同一供应商下唯一。`contextWindow`、`maxOutputTokens` 为正整数；`temperature` 为 0–2；`topP` 为 0–1；`supportStream`、`supportVision`、`isDefault`、`status` 为 `0` 或 `1`；`sort` 为非负整数。启用模型时其供应商也必须启用。设置 `isDefault: 1` 会清除其他模型的默认标记。可选字段的默认值分别是：上下文窗口 8192、最大输出 Token 1024、流式支持 1、视觉能力 0、默认模型 0、状态 1、排序 0。
 
-模型响应字段为 `id`、`providerId`、`providerName`、`modelCode`、`modelName`、`modelType`、`contextWindow`、`maxOutputTokens`、`temperature`、`topP`、`supportStream`、`defaultModel`、`configVersion`、`status`、`sort`、`remark`。其中 `supportStream` 与 `defaultModel` 为布尔值。
+模型响应字段为 `id`、`providerId`、`providerName`、`modelCode`、`modelName`、`modelType`、`contextWindow`、`maxOutputTokens`、`temperature`、`topP`、`supportStream`、`supportVision`、`defaultModel`、`configVersion`、`status`、`sort`、`remark`。其中 `supportStream`、`supportVision` 与 `defaultModel` 为布尔值。
 
 ## 7. 后台统计
 

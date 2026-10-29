@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.aichat.common.security.CurrentUser;
 import com.example.aichat.common.security.CurrentUserProvider;
 import com.example.aichat.file.config.FileStorageProperties;
+import com.example.aichat.file.content.PdfTextExtractor;
 import com.example.aichat.file.dto.FileQueryRequest;
 import com.example.aichat.file.entity.FileMetadata;
 import com.example.aichat.file.enums.FileStatus;
@@ -63,7 +64,7 @@ class FileServiceImplTest {
         lenient().when(currentUserProvider.findCurrentUser())
                 .thenReturn(Optional.of(new CurrentUser(100L, "alice")));
         lenient().doCallRealMethod().when(currentUserProvider).requireCurrentUser();
-        service = new FileServiceImpl(mapper, storage, currentUserProvider, properties);
+        service = new FileServiceImpl(mapper, storage, currentUserProvider, properties, new PdfTextExtractor());
     }
 
     @Test

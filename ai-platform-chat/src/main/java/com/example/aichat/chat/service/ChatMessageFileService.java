@@ -8,5 +8,7 @@ import java.util.Map;
 public interface ChatMessageFileService {
     void bind(Long messageId, Long userId, List<Long> fileIds);
 
+    Map<Long, List<Long>> findFileIdsByMessageIds(List<Long> messageIds);
+
     Map<Long, List<FileMetadataVO>> findByMessageIds(Long userId, List<Long> messageIds);
 }
