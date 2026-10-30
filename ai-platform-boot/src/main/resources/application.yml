@@ -26,6 +26,16 @@ file:
       - application/msword
       - application/vnd.openxmlformats-officedocument.wordprocessingml.document
 
+app:
+  datasource:
+    postgresql:
+      url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/ai_chat}
+      username: ${POSTGRES_USERNAME:ice}
+      password: ${POSTGRES_PASSWORD:}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        initialization-fail-timeout: -1
+
 spring:
   application:
     name: ai-platform

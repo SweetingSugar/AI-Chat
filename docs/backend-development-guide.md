@@ -226,12 +226,15 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 | --- | --- | --- |
 | HTTP | `SERVER_PORT` | 服务端口，默认 `8080` |
 | MySQL | `MYSQL_URL`、`MYSQL_USERNAME`、`MYSQL_PASSWORD` | 业务数据源，默认库名为 `ai_chat` |
+| PostgreSQL | `POSTGRES_URL`、`POSTGRES_USERNAME`、`POSTGRES_PASSWORD` | 独立 `postgresqlDataSource` 和 `postgresqlJdbcTemplate`，不参与现有 MyBatis-Plus 与 Flyway 链路 |
 | Redis | `REDIS_HOST`、`REDIS_PORT`、`REDIS_PASSWORD`、`REDIS_DATABASE` | Sa-Token 与 RedisTemplate 连接 |
 | MinIO | `MINIO_ENDPOINT`、`MINIO_ACCESS_KEY`、`MINIO_SECRET_KEY`、`MINIO_BUCKET`、`MINIO_SECURE` | 私有文件对象存储 |
 | 文件限制 | `FILE_MAX_SIZE`、`FILE_MAX_REQUEST_SIZE`、`MINIO_PRESIGN_EXPIRE_SECONDS` | 上传大小、请求大小和预签名 URL 有效期 |
 | AI 凭证 | `AI_CREDENTIAL_ENCRYPTION_KEY` | 供应商 API Key 的 AES-256-GCM 加解密密钥 |
 | 线程池 | `ai.executor-*` | AI 执行器核心线程、最大线程与队列容量 |
 | Sa-Token | `SA_TOKEN_NAME`、`SA_TOKEN_TIMEOUT`、`SA_TOKEN_SIGNING_KEY` | Token 名称和会话有效期；当前使用 UUID Token，`SA_TOKEN_SIGNING_KEY` 映射到 JWT 密钥配置但未参与当前 UUID 登录流程 |
+
+需要访问 PostgreSQL 时，通过 `@Qualifier("postgresqlJdbcTemplate")` 注入对应的 `JdbcTemplate`；MySQL 仍是默认主数据源，现有 Mapper 和 Flyway 迁移不变。
 
 Flyway 在默认配置下开启，迁移位置为 `classpath:db/migration`；`dev` Profile 中关闭 Flyway。Actuator 暴露 `health` 与 `info` 端点。
 
