@@ -1,7 +1,7 @@
 package com.example.aichat.knowledge.repository;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
-import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
+import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.example.aichat.knowledge.mapper.KnowledgeBaseMapper;
 import com.example.aichat.knowledge.mapper.KnowledgeChunkEmbeddingMapper;
 import com.example.aichat.knowledge.mapper.KnowledgeChunkMapper;
