@@ -11,6 +11,7 @@ import com.example.aichat.chat.model.ChatGenerationCommand;
 import com.example.aichat.chat.model.ChatGenerationResult;
 import com.example.aichat.chat.service.ChatGenerationService;
 import com.example.aichat.chat.service.ChatMessageFileService;
+import com.example.aichat.chat.service.ChatKnowledgeService;
 import com.example.aichat.chat.service.ChatMessageService;
 import com.example.aichat.common.error.BusinessException;
 import org.springframework.stereotype.Service;
@@ -23,12 +24,15 @@ public class ChatGenerationServiceImpl implements ChatGenerationService {
     private final ChatGenerationTaskMapper taskMapper;
     private final ChatMessageService messageService;
     private final ChatMessageFileService messageFileService;
+    private final ChatKnowledgeService knowledgeService;
 
     public ChatGenerationServiceImpl(ChatGenerationTaskMapper taskMapper, ChatMessageService messageService,
-                                    ChatMessageFileService messageFileService) {
+                                    ChatMessageFileService messageFileService,
+                                    ChatKnowledgeService knowledgeService) {
         this.taskMapper = taskMapper;
         this.messageService = messageService;
         this.messageFileService = messageFileService;
+        this.knowledgeService = knowledgeService;
     }
 
     @Override
@@ -44,6 +48,7 @@ public class ChatGenerationServiceImpl implements ChatGenerationService {
         } else {
             userMessage = messageService.saveUser(command.userId(), command.sessionId(), command.content(), command.requestId());
             messageFileService.bind(userMessage.id, command.userId(), command.fileIds());
+            knowledgeService.bindKnowledgeBases(userMessage.id, command.knowledgeBaseIds());
         }
         ChatMessage assistantMessage = messageService.saveAssistant(command.userId(), command.sessionId(), model.id,
                 command.requestId());

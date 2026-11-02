@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.aichat.knowledge.mapper.KnowledgeChunkEmbeddingMapper">
+    <resultMap id="knowledgeChunkSearchResultMap"
+               type="com.example.aichat.knowledge.model.KnowledgeChunkSearchResult">
+        <constructor>
+            <idArg column="chunk_id" javaType="java.lang.Long"/>
+            <arg column="document_id" javaType="java.lang.Long"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="content" javaType="java.lang.String"/>
+            <arg column="distance" javaType="double"/>
+        </constructor>
+    </resultMap>
+
+    <insert id="insertAll">
+        insert into knowledge_chunk_embedding
+            (chunk_id, knowledge_base_id, embedding_model_id, model_version,
+             dimension, index_version, embedding)
+        values
+        <foreach collection="embeddings" item="item" separator=",">
+            (#{item.chunkId}, #{item.knowledgeBaseId}, #{item.embeddingModelId},
+             #{item.modelVersion}, #{item.dimension}, #{item.indexVersion},
+             cast(#{item.embedding, typeHandler=com.example.aichat.knowledge.mapper.typehandler.PgVectorTypeHandler}
+                  as vector))
+        </foreach>
+    </insert>
+
+    <delete id="deleteByDocument">
+        delete from knowledge_chunk_embedding e
+        using knowledge_chunk c
+        where e.chunk_id = c.id and c.document_id = #{documentId}
+    </delete>
+
+    <delete id="deleteByDocumentAndIndexVersion">
+        delete from knowledge_chunk_embedding e
+        using knowledge_chunk c
+        where e.chunk_id = c.id
+          and c.document_id = #{documentId}
+          and e.index_version = #{indexVersion}
+    </delete>
+
+    <delete id="deleteByIndexVersion">
+        delete from knowledge_chunk_embedding
+        where knowledge_base_id = #{knowledgeBaseId} and index_version = #{indexVersion}
+    </delete>
+
+    <select id="search" resultMap="knowledgeChunkSearchResultMap">
+        select e.chunk_id, c.document_id, d.title, c.content,
+               e.embedding &lt;=> cast(#{queryVector, typeHandler=com.example.aichat.knowledge.mapper.typehandler.PgVectorTypeHandler}
+                   as vector) as distance
+        from knowledge_chunk_embedding e
+        join knowledge_chunk c on c.id = e.chunk_id
+        join knowledge_document d on d.id = c.document_id
+        where e.knowledge_base_id = #{knowledgeBaseId}
+          and e.embedding_model_id = #{modelId}
+          and e.dimension = #{dimension}
+          and e.index_version = #{indexVersion}
+          and d.deleted = false
+        order by e.embedding &lt;=> cast(#{queryVector, typeHandler=com.example.aichat.knowledge.mapper.typehandler.PgVectorTypeHandler}
+            as vector)
+        limit #{topK}
+    </select>
+</mapper>

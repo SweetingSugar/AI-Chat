@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.aichat.knowledge.mapper.KnowledgeBaseMapper">
+    <resultMap id="knowledgeBaseResultMap"
+               type="com.example.aichat.knowledge.model.KnowledgeBaseRecord">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="user_id" javaType="java.lang.Long"/>
+            <arg column="name" javaType="java.lang.String"/>
+            <arg column="description" javaType="java.lang.String"/>
+            <arg column="embedding_model_id" javaType="java.lang.Long"/>
+            <arg column="embedding_model_version" javaType="java.lang.Integer"/>
+            <arg column="pending_embedding_model_id" javaType="java.lang.Long"/>
+            <arg column="pending_embedding_model_version" javaType="java.lang.Integer"/>
+            <arg column="pending_index_version" javaType="java.lang.Long"/>
+            <arg column="active_index_version" javaType="java.lang.Long"/>
+            <arg column="status"
+                 javaType="com.example.aichat.knowledge.enums.KnowledgeBaseStatus"/>
+            <arg column="deleted" javaType="boolean"/>
+            <arg column="create_time" javaType="java.time.LocalDateTime"/>
+            <arg column="update_time" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, user_id, name, description, embedding_model_id, embedding_model_version,
+        pending_embedding_model_id, pending_embedding_model_version, pending_index_version,
+        active_index_version, status, deleted, create_time, update_time
+    </sql>
+
+    <select id="findPageByUserId" resultMap="knowledgeBaseResultMap">
+        select <include refid="baseColumns"/>
+        from knowledge_base
+        where user_id = #{userId} and deleted = false
+        order by update_time desc, id desc
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="countByUserId" resultType="long">
+        select count(*)
+        from knowledge_base
+        where user_id = #{userId} and deleted = false
+    </select>
+
+    <select id="findById" resultMap="knowledgeBaseResultMap">
+        select <include refid="baseColumns"/>
+        from knowledge_base
+        where id = #{id}
+    </select>
+
+    <select id="findOwnedActive" resultMap="knowledgeBaseResultMap">
+        select <include refid="baseColumns"/>
+        from knowledge_base
+        where id = #{id}
+          and user_id = #{userId}
+          and status = 'ACTIVE'
+          and deleted = false
+    </select>
+
+    <select id="countByEmbeddingModelId" resultType="long">
+        select count(*)
+        from knowledge_base
+        where deleted = false
+          and (embedding_model_id = #{modelId} or pending_embedding_model_id = #{modelId})
+    </select>
+
+    <select id="insert" resultType="java.lang.Long">
+        insert into knowledge_base
+            (user_id, name, description, embedding_model_id, embedding_model_version)
+        values (#{userId}, #{name}, #{description}, #{embeddingModelId}, #{embeddingModelVersion})
+        returning id
+    </select>
+
+    <update id="update">
+        update knowledge_base
+        set name = #{name}, description = #{description}, update_time = current_timestamp
+        where id = #{id} and deleted = false
+    </update>
+
+    <update id="updatePendingEmbeddingModel">
+        update knowledge_base
+        set pending_embedding_model_id = #{embeddingModelId},
+            pending_embedding_model_version = #{embeddingModelVersion},
+            pending_index_version = #{newIndexVersion},
+            update_time = current_timestamp
+        where id = #{id} and deleted = false
+    </update>
+
+    <update id="switchActiveEmbedding">
+        update knowledge_base
+        set embedding_model_id = pending_embedding_model_id,
+            embedding_model_version = pending_embedding_model_version,
+            active_index_version = #{indexVersion},
+            pending_embedding_model_id = null,
+            pending_embedding_model_version = null,
+            pending_index_version = null,
+            update_time = current_timestamp
+        where id = #{id} and deleted = false and pending_index_version = #{indexVersion}
+    </update>
+
+    <update id="switchActiveIndexVersion">
+        update knowledge_base
+        set active_index_version = #{indexVersion}, update_time = current_timestamp
+        where id = #{id} and deleted = false
+    </update>
+
+    <update id="markDeleted">
+        update knowledge_base
+        set deleted = true, status = 'DELETED', update_time = current_timestamp
+        where id = #{id} and user_id = #{userId} and deleted = false
+    </update>
+
+    <select id="nextIndexVersion" resultType="java.lang.Long">
+        select greatest(
+            coalesce((select max(index_version)
+                      from knowledge_index_task
+                      where knowledge_base_id = #{knowledgeBaseId}), 0),
+            active_index_version
+        ) + 1
+        from knowledge_base
+        where id = #{knowledgeBaseId}
+    </select>
+</mapper>

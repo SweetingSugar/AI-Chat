@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,7 +39,8 @@ class FileContentServiceTest {
     @BeforeEach
     void setUp() {
         service = new FileServiceImpl(mapper, storage, currentUserProvider,
-                new com.example.aichat.file.config.FileStorageProperties(), new PdfTextExtractor());
+                new com.example.aichat.file.config.FileStorageProperties(), new PdfTextExtractor(),
+                new com.example.aichat.file.content.DocxTextExtractor());
     }
 
     @Test
@@ -102,12 +102,14 @@ class FileContentServiceTest {
         assertThatThrownBy(() -> service.readOwnedActive(100L, List.of(13L)))
                 .hasMessage("File not found");
 
-        FileMetadata word = metadata(100L, 14L, "file.doc", "application/msword");
-        when(mapper.selectBatchIds(List.of(14L))).thenReturn(List.of(word));
+        FileMetadata unsupported = metadata(100L, 14L, "file.zip", "application/zip");
+        when(mapper.selectBatchIds(List.of(14L))).thenReturn(List.of(unsupported));
+        when(storage.get("files", "users/100/file.zip"))
+                .thenReturn(new ByteArrayInputStream(new byte[]{1}));
         assertThatThrownBy(() -> service.readOwnedActive(100L, List.of(14L)))
                 .hasMessage("File type is not supported for AI analysis");
 
-        verify(storage, never()).get(any(), any());
+        verify(storage).get("files", "users/100/file.zip");
     }
 
     private FileMetadata metadata(Long userId, Long id, String name, String contentType) {

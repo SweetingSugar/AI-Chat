@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.aichat.knowledge.mapper.KnowledgeDocumentMapper">
+    <resultMap id="knowledgeDocumentResultMap"
+               type="com.example.aichat.knowledge.model.KnowledgeDocumentRecord">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="knowledge_base_id" javaType="java.lang.Long"/>
+            <arg column="source_type"
+                 javaType="com.example.aichat.knowledge.enums.KnowledgeDocumentSourceType"/>
+            <arg column="file_id" javaType="java.lang.Long"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="raw_content" javaType="java.lang.String"/>
+            <arg column="content_hash" javaType="java.lang.String"/>
+            <arg column="status"
+                 javaType="com.example.aichat.knowledge.enums.KnowledgeDocumentStatus"/>
+            <arg column="index_version" javaType="java.lang.Long"/>
+            <arg column="active_index_version" javaType="java.lang.Long"/>
+            <arg column="chunk_count" javaType="java.lang.Integer"/>
+            <arg column="error_code" javaType="java.lang.String"/>
+            <arg column="error_message" javaType="java.lang.String"/>
+            <arg column="deleted" javaType="boolean"/>
+            <arg column="create_time" javaType="java.time.LocalDateTime"/>
+            <arg column="update_time" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="documentColumns">
+        id, knowledge_base_id, source_type, file_id, title, raw_content, content_hash,
+        status, index_version, active_index_version, chunk_count, error_code, error_message,
+        deleted, create_time, update_time
+    </sql>
+
+    <select id="findPageByKnowledgeBaseId" resultMap="knowledgeDocumentResultMap">
+        select <include refid="documentColumns"/>
+        from knowledge_document
+        where knowledge_base_id = #{knowledgeBaseId} and deleted = false
+        order by update_time desc, id desc
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="findByKnowledgeBaseId" resultMap="knowledgeDocumentResultMap">
+        select <include refid="documentColumns"/>
+        from knowledge_document
+        where knowledge_base_id = #{knowledgeBaseId} and deleted = false
+        order by id
+    </select>
+
+    <select id="countByKnowledgeBaseId" resultType="long">
+        select count(*)
+        from knowledge_document
+        where knowledge_base_id = #{knowledgeBaseId} and deleted = false
+    </select>
+
+    <select id="findById" resultMap="knowledgeDocumentResultMap">
+        select <include refid="documentColumns"/>
+        from knowledge_document
+        where id = #{id}
+    </select>
+
+    <select id="findActiveByKnowledgeBaseAndFile" resultMap="knowledgeDocumentResultMap">
+        select <include refid="documentColumns"/>
+        from knowledge_document
+        where knowledge_base_id = #{knowledgeBaseId}
+          and file_id = #{fileId}
+          and deleted = false
+    </select>
+
+    <select id="insert" resultType="java.lang.Long">
+        insert into knowledge_document
+            (knowledge_base_id, source_type, file_id, title, raw_content, index_version)
+        values (#{knowledgeBaseId}, #{sourceType}, #{fileId}, #{title}, #{rawContent}, #{indexVersion})
+        returning id
+    </select>
+
+    <update id="markIndexing">
+        update knowledge_document
+        set status = 'INDEXING', index_version = #{indexVersion}, error_code = null, error_message = null,
+            update_time = current_timestamp
+        where id = #{documentId} and deleted = false
+    </update>
+
+    <update id="markReady">
+        update knowledge_document
+        set status = 'READY', active_index_version = #{indexVersion},
+            index_version = #{indexVersion}, chunk_count = #{chunkCount},
+            error_code = null, error_message = null, update_time = current_timestamp
+        where id = #{documentId} and deleted = false
+    </update>
+
+    <update id="updateContentHash">
+        update knowledge_document
+        set content_hash = #{contentHash}, update_time = current_timestamp
+        where id = #{documentId} and deleted = false
+    </update>
+
+    <update id="markFailed">
+        update knowledge_document
+        set status = #{status}, error_code = #{errorCode}, error_message = #{errorMessage},
+            update_time = current_timestamp
+        where id = #{documentId} and deleted = false
+    </update>
+
+    <update id="markDeleted">
+        update knowledge_document
+        set deleted = true, status = 'DELETED', update_time = current_timestamp
+        where id = #{id} and deleted = false
+    </update>
+</mapper>

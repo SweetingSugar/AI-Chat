@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.aichat.knowledge.mapper.KnowledgeIndexTaskMapper">
+    <resultMap id="knowledgeIndexTaskResultMap"
+               type="com.example.aichat.knowledge.model.KnowledgeIndexTaskRecord">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="knowledge_base_id" javaType="java.lang.Long"/>
+            <arg column="document_id" javaType="java.lang.Long"/>
+            <arg column="embedding_model_id" javaType="java.lang.Long"/>
+            <arg column="model_version" javaType="java.lang.Integer"/>
+            <arg column="index_version" javaType="java.lang.Long"/>
+            <arg column="status"
+                 javaType="com.example.aichat.knowledge.enums.KnowledgeIndexTaskStatus"/>
+            <arg column="attempt_count" javaType="java.lang.Integer"/>
+            <arg column="max_attempts" javaType="java.lang.Integer"/>
+            <arg column="next_retry_at" javaType="java.time.LocalDateTime"/>
+            <arg column="locked_at" javaType="java.time.LocalDateTime"/>
+            <arg column="started_at" javaType="java.time.LocalDateTime"/>
+            <arg column="completed_at" javaType="java.time.LocalDateTime"/>
+            <arg column="error_code" javaType="java.lang.String"/>
+            <arg column="error_message" javaType="java.lang.String"/>
+            <arg column="create_time" javaType="java.time.LocalDateTime"/>
+            <arg column="update_time" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="taskColumns">
+        id, knowledge_base_id, document_id, embedding_model_id, model_version,
+        index_version, status, attempt_count, max_attempts, next_retry_at,
+        locked_at, started_at, completed_at, error_code, error_message,
+        create_time, update_time
+    </sql>
+
+    <select id="insert" resultType="java.lang.Long">
+        insert into knowledge_index_task
+            (knowledge_base_id, document_id, embedding_model_id, model_version,
+             index_version, max_attempts)
+        values (#{knowledgeBaseId}, #{documentId}, #{embeddingModelId}, #{modelVersion},
+                #{indexVersion}, #{maxAttempts})
+        returning id
+    </select>
+
+    <select id="claimNext" resultMap="knowledgeIndexTaskResultMap">
+        with candidate as (
+            select id
+            from knowledge_index_task
+            where status = 'PENDING'
+              and next_retry_at &lt;= current_timestamp
+              and attempt_count &lt; max_attempts
+            order by id
+            for update skip locked
+            limit 1
+        )
+        update knowledge_index_task task
+        set status = 'RUNNING', attempt_count = task.attempt_count + 1,
+            locked_at = current_timestamp, started_at = current_timestamp,
+            update_time = current_timestamp
+        from candidate
+        where task.id = candidate.id
+        returning task.id, task.knowledge_base_id, task.document_id,
+                  task.embedding_model_id, task.model_version, task.index_version,
+                  task.status, task.attempt_count, task.max_attempts,
+                  task.next_retry_at, task.locked_at, task.started_at,
+                  task.completed_at, task.error_code, task.error_message,
+                  task.create_time, task.update_time
+    </select>
+
+    <update id="markSuccess">
+        update knowledge_index_task
+        set status = 'SUCCESS', completed_at = current_timestamp,
+            locked_at = null, update_time = current_timestamp
+        where id = #{taskId} and status = 'RUNNING'
+    </update>
+
+    <update id="markFailedRetryable">
+        update knowledge_index_task
+        set status = case when attempt_count &lt; max_attempts then 'PENDING' else 'FAILED' end,
+            next_retry_at = current_timestamp + interval '30 seconds',
+            error_code = #{errorCode}, error_message = #{errorMessage},
+            locked_at = null, update_time = current_timestamp
+        where id = #{taskId} and status = 'RUNNING'
+    </update>
+
+    <update id="markFailedTerminal">
+        update knowledge_index_task
+        set status = 'FAILED', error_code = #{errorCode}, error_message = #{errorMessage},
+            locked_at = null, completed_at = current_timestamp, update_time = current_timestamp
+        where id = #{taskId} and status = 'RUNNING'
+    </update>
+
+    <update id="retry">
+        update knowledge_index_task
+        set status = 'PENDING', attempt_count = 0, next_retry_at = current_timestamp,
+            locked_at = null, started_at = null, completed_at = null,
+            error_code = null, error_message = null, update_time = current_timestamp
+        where id = #{taskId} and status = 'FAILED'
+    </update>
+
+    <update id="recoverStale">
+        update knowledge_index_task
+        set status = 'PENDING', locked_at = null, next_retry_at = current_timestamp,
+            error_code = 'KNOWLEDGE_TASK_RECOVERED',
+            error_message = 'Recovered after worker restart', update_time = current_timestamp
+        where status = 'RUNNING' and locked_at &lt; #{lockedBefore}
+          and attempt_count &lt; max_attempts
+    </update>
+
+    <select id="countNotSuccessful" resultType="long">
+        select count(*)
+        from knowledge_index_task
+        where knowledge_base_id = #{knowledgeBaseId}
+          and index_version = #{indexVersion}
+          and status &lt;&gt; 'SUCCESS'
+    </select>
+
+    <select id="findLatestFailedByDocumentId" resultMap="knowledgeIndexTaskResultMap">
+        select <include refid="taskColumns"/>
+        from knowledge_index_task
+        where document_id = #{documentId} and status = 'FAILED'
+        order by id desc
+        limit 1
+    </select>
+
+    <select id="findById" resultMap="knowledgeIndexTaskResultMap">
+        select <include refid="taskColumns"/>
+        from knowledge_index_task
+        where id = #{taskId}
+    </select>
+</mapper>

@@ -2,6 +2,7 @@ package com.example.aichat.chat.converter;
 
 import com.example.aichat.chat.api.ChatHistoryMessage;
 import com.example.aichat.chat.entity.ChatMessage;
+import com.example.aichat.chat.vo.ChatKnowledgeSourceVO;
 import com.example.aichat.chat.vo.ChatMessageVO;
 import com.example.aichat.file.vo.FileMetadataVO;
 
@@ -16,10 +17,15 @@ public final class ChatMessageConverter {
     }
 
     public static ChatMessageVO toVO(ChatMessage message, List<FileMetadataVO> files) {
+        return toVO(message, files, List.of());
+    }
+
+    public static ChatMessageVO toVO(ChatMessage message, List<FileMetadataVO> files,
+                                     List<ChatKnowledgeSourceVO> sources) {
         return new ChatMessageVO(message.id, message.sessionId, message.role, message.content,
                 message.sequence, message.status, message.generationTaskId, message.requestId,
                 message.modelId, message.errorCode, message.errorMessage, message.createTime,
-                message.updateTime, files);
+                message.updateTime, files, sources);
     }
 
     public static ChatHistoryMessage toHistory(ChatMessage message) {

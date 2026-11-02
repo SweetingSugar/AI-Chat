@@ -20,6 +20,8 @@ public interface AiModelService {
 
     AiModel requireEnabled(Long modelId);
 
+    AiModel requireEnabledEmbedding(Long modelId);
+
     AiModel requireDefaultEnabled();
 
     List<AiModelDTO> listAvailableModels();

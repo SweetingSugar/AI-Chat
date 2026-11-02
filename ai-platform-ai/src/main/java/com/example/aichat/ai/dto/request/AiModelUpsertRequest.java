@@ -15,6 +15,7 @@ public record AiModelUpsertRequest(
         @NotBlank @Size(max = 100) String modelCode,
         @NotBlank @Size(max = 100) String modelName,
         @NotBlank @Size(max = 32) String modelType,
+        @Min(1) Integer embeddingDimension,
         @Min(1) Integer contextWindow,
         @Min(1) Integer maxOutputTokens,
         @DecimalMin("0.0") @DecimalMax("2.0") BigDecimal temperature,

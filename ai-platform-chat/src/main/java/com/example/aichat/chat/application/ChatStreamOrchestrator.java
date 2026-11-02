@@ -3,6 +3,7 @@ package com.example.aichat.chat.application;
 import com.example.aichat.ai.dto.response.AiChatResponse;
 import com.example.aichat.ai.entity.AiModel;
 import com.example.aichat.ai.stream.AiStreamEvent;
+import com.example.aichat.chat.enums.ChatMessageRole;
 import com.example.aichat.chat.enums.ChatStreamEventType;
 import com.example.aichat.chat.gateway.AiChatGateway;
 import com.example.aichat.chat.manager.ChatGenerationLockManager;
@@ -11,15 +12,19 @@ import com.example.aichat.chat.model.ChatGenerationCommand;
 import com.example.aichat.chat.model.ChatGenerationResult;
 import com.example.aichat.chat.model.ChatMessagePair;
 import com.example.aichat.chat.service.ChatGenerationService;
+import com.example.aichat.chat.service.ChatKnowledgeService;
 import com.example.aichat.chat.service.ChatMessageService;
 import com.example.aichat.chat.vo.ChatStreamEventVO;
 import com.example.aichat.common.error.BusinessException;
 import com.example.aichat.common.error.ErrorCode;
+import com.example.aichat.knowledge.retrieval.KnowledgeContext;
+import com.example.aichat.knowledge.retrieval.KnowledgeRetrievalService;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class ChatStreamOrchestrator {
@@ -29,16 +34,22 @@ public class ChatStreamOrchestrator {
     private final ChatMessageService messageService;
     private final ChatGenerationFinalizer finalizer;
     private final AiChatGateway aiChatGateway;
+    private final KnowledgeRetrievalService knowledgeRetrievalService;
+    private final ChatKnowledgeService knowledgeService;
 
     public ChatStreamOrchestrator(ChatGenerationLockManager lockManager, ChatGenerationTaskManager taskManager,
                                   ChatGenerationService generationService, ChatMessageService messageService,
-                                  ChatGenerationFinalizer finalizer, AiChatGateway aiChatGateway) {
+                                  ChatGenerationFinalizer finalizer, AiChatGateway aiChatGateway,
+                                  KnowledgeRetrievalService knowledgeRetrievalService,
+                                  ChatKnowledgeService knowledgeService) {
         this.lockManager = lockManager;
         this.taskManager = taskManager;
         this.generationService = generationService;
         this.messageService = messageService;
         this.finalizer = finalizer;
         this.aiChatGateway = aiChatGateway;
+        this.knowledgeRetrievalService = knowledgeRetrievalService;
+        this.knowledgeService = knowledgeService;
     }
 
     public Flux<ChatStreamEventVO> stream(ChatGenerationCommand command, AiModel model) {
@@ -56,10 +67,21 @@ public class ChatStreamOrchestrator {
             taskManager.register(generation);
             StringBuilder output = new StringBuilder();
             AtomicBoolean terminal = new AtomicBoolean(false);
+            AtomicReference<KnowledgeContext> knowledgeContextRef = new AtomicReference<>(
+                    new KnowledgeContext(List.of(), ""));
             List<ChatMessagePair> context;
             try {
                 context = messageService.context(command.userId(), command.sessionId(),
                         command.existingUserMessageId() == null ? null : findSourceSequence(command));
+                KnowledgeContext knowledgeContext = knowledgeRetrievalService.retrieve(command.userId(),
+                        command.knowledgeBaseIds(), command.content());
+                knowledgeContextRef.set(knowledgeContext);
+                if (!knowledgeContext.sources().isEmpty()) {
+                    knowledgeService.saveSources(generation.userMessageId(), knowledgeContext);
+                    context = java.util.stream.Stream.concat(
+                            java.util.stream.Stream.of(new ChatMessagePair(ChatMessageRole.SYSTEM,
+                                    knowledgeContext.prompt(), List.of())), context.stream()).toList();
+                }
             } catch (RuntimeException exception) {
                 taskManager.remove(generation.requestId());
                 lockManager.release(command.sessionId());
@@ -69,7 +91,7 @@ public class ChatStreamOrchestrator {
                 return Flux.just(failed(generation, command, model, code, message));
             }
             Flux<ChatStreamEventVO> body = aiChatGateway.stream(command, generation, context)
-                    .map(event -> mapEvent(event, command, model, generation, output, terminal))
+                    .map(event -> mapEvent(event, command, model, generation, output, terminal, knowledgeContextRef.get()))
                     .onErrorResume(exception -> {
                         if (terminal.compareAndSet(false, true)) {
                             String code = errorCode(exception);
@@ -83,7 +105,7 @@ public class ChatStreamOrchestrator {
                         if (terminal.get()) return Flux.empty();
                         terminal.set(true);
                         finalizer.complete(generation, output.toString(), null);
-                        return Flux.just(complete(generation, command, model, null));
+                        return Flux.just(complete(generation, command, model, null, knowledgeContextRef.get()));
                     }));
             return Flux.concat(Flux.just(start(generation, command, model)), body)
                     .doOnCancel(() -> {
@@ -97,7 +119,8 @@ public class ChatStreamOrchestrator {
     }
 
     private ChatStreamEventVO mapEvent(AiStreamEvent event, ChatGenerationCommand command, AiModel model,
-                                       ChatGenerationResult generation, StringBuilder output, AtomicBoolean terminal) {
+                                       ChatGenerationResult generation, StringBuilder output, AtomicBoolean terminal,
+                                       KnowledgeContext knowledgeContext) {
         if (event.type() == com.example.aichat.ai.stream.AiStreamEventType.DELTA) {
             String delta = event.delta() == null ? "" : event.delta();
             output.append(delta);
@@ -109,7 +132,7 @@ public class ChatStreamOrchestrator {
             return failed(generation, command, model, event.code(), event.message());
         }
         if (terminal.compareAndSet(false, true)) finalizer.complete(generation, output.toString(), event.response());
-        return complete(generation, command, model, event.response());
+        return complete(generation, command, model, event.response(), knowledgeContext);
     }
 
     private Long findSourceSequence(ChatGenerationCommand command) {
@@ -122,9 +145,15 @@ public class ChatStreamOrchestrator {
     }
 
     private ChatStreamEventVO complete(ChatGenerationResult generation, ChatGenerationCommand command,
-                                       AiModel model, AiChatResponse response) {
+                                       AiModel model, AiChatResponse response, KnowledgeContext knowledgeContext) {
+        List<com.example.aichat.chat.vo.ChatKnowledgeSourceVO> sources = knowledgeContext.sources().stream()
+                .map(source -> new com.example.aichat.chat.vo.ChatKnowledgeSourceVO(source.knowledgeBaseId(),
+                        source.documentId(), source.chunkId(), source.title(), source.content(), source.score(),
+                        source.rank()))
+                .toList();
         return new ChatStreamEventVO(ChatStreamEventType.COMPLETE, generation.taskId(), command.requestId(), null,
-                generation.assistantMessageId(), model.id, model.modelCode, response == null ? null : response.usage(), null, null);
+                generation.assistantMessageId(), model.id, model.modelCode, response == null ? null : response.usage(),
+                null, null, sources);
     }
 
     private ChatStreamEventVO failed(ChatGenerationResult generation, ChatGenerationCommand command, AiModel model,

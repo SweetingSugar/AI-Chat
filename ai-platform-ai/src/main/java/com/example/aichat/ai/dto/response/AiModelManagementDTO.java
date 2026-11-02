@@ -9,6 +9,7 @@ public record AiModelManagementDTO(
         String modelCode,
         String modelName,
         String modelType,
+        Integer embeddingDimension,
         Integer contextWindow,
         Integer maxOutputTokens,
         BigDecimal temperature,

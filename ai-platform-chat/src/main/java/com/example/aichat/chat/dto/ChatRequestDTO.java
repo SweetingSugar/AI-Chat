@@ -12,9 +12,14 @@ import java.util.List;
 public record ChatRequestDTO(
         @NotBlank @Size(max = 100_000) String content,
         @Size(max = 10) List<Long> fileIds,
+        @Size(max = 10) List<Long> knowledgeBaseIds,
         Long modelId,
         @Size(max = 64) String requestId,
         @DecimalMin("0.0") @DecimalMax("2.0") Double temperature,
         @DecimalMin("0.0") @DecimalMax("1.0") Double topP,
         @Min(1) @Max(100_000) Integer maxOutputTokens) {
+    public ChatRequestDTO(String content, List<Long> fileIds, Long modelId, String requestId,
+                          Double temperature, Double topP, Integer maxOutputTokens) {
+        this(content, fileIds, List.of(), modelId, requestId, temperature, topP, maxOutputTokens);
+    }
 }

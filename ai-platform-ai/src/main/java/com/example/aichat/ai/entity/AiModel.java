@@ -16,6 +16,7 @@ public class AiModel {
     public String modelCode;
     public String modelName;
     public String modelType;
+    public Integer embeddingDimension;
     public Integer contextWindow;
     public Integer maxOutputTokens;
     public BigDecimal temperature;
@@ -72,6 +73,14 @@ public class AiModel {
 
     public void setModelType(String modelType) {
         this.modelType = modelType;
+    }
+
+    public Integer getEmbeddingDimension() {
+        return embeddingDimension;
+    }
+
+    public void setEmbeddingDimension(Integer embeddingDimension) {
+        this.embeddingDimension = embeddingDimension;
     }
 
     public Integer getContextWindow() {

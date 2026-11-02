@@ -26,6 +26,16 @@ file:
       - application/msword
       - application/vnd.openxmlformats-officedocument.wordprocessingml.document
 
+knowledge:
+  vector:
+    enabled: ${KNOWLEDGE_VECTOR_ENABLED:false}
+    migration-enabled: ${KNOWLEDGE_VECTOR_MIGRATION_ENABLED:false}
+    task-poll-interval: ${KNOWLEDGE_TASK_POLL_INTERVAL:2000}
+    task-lock-timeout: ${KNOWLEDGE_TASK_LOCK_TIMEOUT:600000}
+    task-max-attempts: ${KNOWLEDGE_TASK_MAX_ATTEMPTS:3}
+    retrieval-top-k: ${KNOWLEDGE_RETRIEVAL_TOP_K:8}
+    max-text-length: ${KNOWLEDGE_MAX_TEXT_LENGTH:1000000}
+
 app:
   datasource:
     postgresql:

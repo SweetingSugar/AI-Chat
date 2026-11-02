@@ -12,6 +12,7 @@ import com.example.aichat.chat.gateway.AiModelGateway;
 import com.example.aichat.chat.gateway.ChatUserGateway;
 import com.example.aichat.chat.model.ChatGenerationCommand;
 import com.example.aichat.chat.service.ChatMessageService;
+import com.example.aichat.chat.service.ChatKnowledgeService;
 import com.example.aichat.chat.service.ChatService;
 import com.example.aichat.chat.service.ChatSessionService;
 import com.example.aichat.chat.vo.ChatStreamEventVO;
@@ -31,12 +32,14 @@ public class ChatServiceImpl implements ChatService {
     private final ChatUserGateway userGateway;
     private final AiModelGateway modelGateway;
     private final FileAccessService fileAccessService;
+    private final ChatKnowledgeService knowledgeService;
     private final ChatStreamOrchestrator streamOrchestrator;
     private final ChatRegenerateOrchestrator regenerateOrchestrator;
 
     public ChatServiceImpl(ChatSessionService sessionService, ChatMessageService messageService,
                            ChatUserGateway userGateway, AiModelGateway modelGateway,
                            FileAccessService fileAccessService,
+                           ChatKnowledgeService knowledgeService,
                            ChatStreamOrchestrator streamOrchestrator,
                            ChatRegenerateOrchestrator regenerateOrchestrator) {
         this.sessionService = sessionService;
@@ -44,6 +47,7 @@ public class ChatServiceImpl implements ChatService {
         this.userGateway = userGateway;
         this.modelGateway = modelGateway;
         this.fileAccessService = fileAccessService;
+        this.knowledgeService = knowledgeService;
         this.streamOrchestrator = streamOrchestrator;
         this.regenerateOrchestrator = regenerateOrchestrator;
     }
@@ -57,7 +61,8 @@ public class ChatServiceImpl implements ChatService {
                 .map(file -> file.id())
                 .toList();
         ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, request.content(), fileIds, model.id,
-                requestId(request.requestId()), request.temperature(), request.topP(), request.maxOutputTokens(), null, null);
+                requestId(request.requestId()), request.temperature(), request.topP(), request.maxOutputTokens(), null, null,
+                request.knowledgeBaseIds());
         return streamOrchestrator.stream(command, model);
     }
 
@@ -71,9 +76,10 @@ public class ChatServiceImpl implements ChatService {
         }
         ChatMessage userMessage = messageService.findPreviousUser(source);
         AiModel model = modelGateway.resolve(request.modelId(), session.defaultModelId);
+        List<Long> knowledgeBaseIds = knowledgeService.findKnowledgeBaseIds(userMessage.id);
         ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, userMessage.content, List.of(), model.id,
                 requestId(request.requestId()), request.temperature(), request.topP(), request.maxOutputTokens(),
-                userMessage.id, source.id);
+                userMessage.id, source.id, knowledgeBaseIds);
         return regenerateOrchestrator.stream(command, model);
     }
 

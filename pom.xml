@@ -13,6 +13,7 @@
         <module>ai-platform-system</module>
         <module>ai-platform-ai</module>
         <module>ai-platform-chat</module>
+        <module>ai-platform-knowledge</module>
         <module>ai-platform-admin</module>
         <module>ai-platform-boot</module>
     </modules>

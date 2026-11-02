@@ -64,7 +64,8 @@ class FileServiceImplTest {
         lenient().when(currentUserProvider.findCurrentUser())
                 .thenReturn(Optional.of(new CurrentUser(100L, "alice")));
         lenient().doCallRealMethod().when(currentUserProvider).requireCurrentUser();
-        service = new FileServiceImpl(mapper, storage, currentUserProvider, properties, new PdfTextExtractor());
+        service = new FileServiceImpl(mapper, storage, currentUserProvider, properties,
+                new PdfTextExtractor(), new com.example.aichat.file.content.DocxTextExtractor());
     }
 
     @Test

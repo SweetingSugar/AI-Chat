@@ -2,11 +2,13 @@ package com.example.aichat.ai.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.example.aichat.ai.api.AiModelQueryService;
+import com.example.aichat.ai.api.AiModelUsageValidator;
 import com.example.aichat.ai.dto.request.AiModelUpsertRequest;
 import com.example.aichat.ai.dto.response.AiModelDTO;
 import com.example.aichat.ai.dto.response.AiModelManagementDTO;
 import com.example.aichat.ai.entity.AiModel;
 import com.example.aichat.ai.entity.AiProvider;
+import com.example.aichat.ai.enums.AiModelType;
 import com.example.aichat.ai.exception.AiModelNotFoundException;
 import com.example.aichat.ai.mapper.AiModelMapper;
 import com.example.aichat.ai.service.AiModelService;
@@ -18,15 +20,19 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
     private final AiModelMapper modelMapper;
     private final AiProviderService providerService;
+    private final List<AiModelUsageValidator> usageValidators;
 
-    public AiModelServiceImpl(AiModelMapper modelMapper, AiProviderService providerService) {
+    public AiModelServiceImpl(AiModelMapper modelMapper, AiProviderService providerService,
+                              List<AiModelUsageValidator> usageValidators) {
         this.modelMapper = modelMapper;
         this.providerService = providerService;
+        this.usageValidators = usageValidators;
     }
 
     @Override
@@ -56,6 +62,11 @@ public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
     @Transactional
     public AiModelManagementDTO update(Long modelId, AiModelUpsertRequest request) {
         AiModel model = getRequired(modelId);
+        AiModelType requestedType = validateModelDefinition(request);
+        if (embeddingDefinitionChanged(model, requestedType, request.embeddingDimension())) {
+            usageValidators.forEach(validator ->
+                    validator.assertCanChangeEmbeddingDefinition(modelId, request.embeddingDimension()));
+        }
         AiProvider provider = requireModelProvider(request.providerId(), request.status());
         assertCodeAvailable(request.providerId(), request.modelCode(), modelId);
         copy(request, model);
@@ -69,6 +80,7 @@ public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
     @Transactional
     public void delete(Long modelId) {
         getRequired(modelId);
+        usageValidators.forEach(validator -> validator.assertCanDelete(modelId));
         modelMapper.deleteById(modelId);
     }
 
@@ -91,8 +103,30 @@ public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
 
     @Override
     public List<AiModelDTO> listAvailableModels() {
-        return modelMapper.selectList(Wrappers.<AiModel>query().eq("status", 1).orderByAsc("sort"))
-                .stream().flatMap(model -> availableDto(model).stream()).toList();
+        return modelMapper.selectList(Wrappers.<AiModel>query().eq("status", 1)
+                        .eq("model_type", AiModelType.CHAT.name()).orderByAsc("sort"))
+                .stream()
+                .filter(model -> AiModelType.CHAT.name().equalsIgnoreCase(model.modelType))
+                .flatMap(model -> availableDto(model).stream()).toList();
+    }
+
+    @Override
+    public AiModel requireEnabledEmbedding(Long modelId) {
+        AiModel model = getRequired(modelId);
+        if (!Integer.valueOf(1).equals(model.status)) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_EMBEDDING_MODEL_UNAVAILABLE,
+                    "Embedding model is disabled");
+        }
+        if (parseType(model.modelType) != AiModelType.EMBEDDING) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_BASE_MODEL_INVALID,
+                    "Selected model is not an embedding model");
+        }
+        if (model.embeddingDimension == null || model.embeddingDimension < 1) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_BASE_MODEL_INVALID,
+                    "Embedding model dimension is invalid");
+        }
+        providerService.requireEnabled(model.providerId);
+        return model;
     }
 
     private AiModel getRequired(Long modelId) {
@@ -125,10 +159,12 @@ public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
     }
 
     private AiModel copy(AiModelUpsertRequest request, AiModel model) {
+        AiModelType type = validateModelDefinition(request);
         model.setProviderId(request.providerId());
         model.setModelCode(request.modelCode().trim());
         model.setModelName(request.modelName().trim());
-        model.setModelType(request.modelType().trim());
+        model.setModelType(type.name());
+        model.setEmbeddingDimension(request.embeddingDimension());
         model.setContextWindow(request.contextWindow() == null ? 8192 : request.contextWindow());
         model.setMaxOutputTokens(request.maxOutputTokens() == null ? 1024 : request.maxOutputTokens());
         model.setTemperature(request.temperature());
@@ -140,6 +176,38 @@ public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
         model.setSort(request.sort() == null ? 0 : request.sort());
         model.setRemark(StringUtils.hasText(request.remark()) ? request.remark().trim() : null);
         return model;
+    }
+
+    private AiModelType validateModelDefinition(AiModelUpsertRequest request) {
+        AiModelType type = parseType(request.modelType());
+        if (type == AiModelType.EMBEDDING
+                && (request.embeddingDimension() == null || request.embeddingDimension() < 1)) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "Embedding model requires a positive dimension");
+        }
+        if (type == AiModelType.CHAT && request.embeddingDimension() != null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "Chat model cannot define an embedding dimension");
+        }
+        return type;
+    }
+
+    private AiModelType parseType(String modelType) {
+        try {
+            return AiModelType.valueOf(modelType.trim().toUpperCase(Locale.ROOT));
+        } catch (RuntimeException exception) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Unknown AI model type");
+        }
+    }
+
+    private boolean embeddingDefinitionChanged(AiModel model, AiModelType requestedType,
+                                               Integer requestedDimension) {
+        AiModelType currentType = parseType(model.modelType);
+        if (currentType != AiModelType.EMBEDDING && requestedType != AiModelType.EMBEDDING) {
+            return false;
+        }
+        return currentType != requestedType
+                || !java.util.Objects.equals(model.embeddingDimension, requestedDimension);
     }
 
     private java.util.Optional<AiModelDTO> availableDto(AiModel model) {
@@ -157,7 +225,7 @@ public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
 
     private AiModelManagementDTO toManagementDto(AiModel model, AiProvider provider) {
         return new AiModelManagementDTO(model.getId(), model.getProviderId(), provider.getProviderName(), model.getModelCode(),
-                model.getModelName(), model.getModelType(), model.getContextWindow(), model.getMaxOutputTokens(), model.getTemperature(),
+                model.getModelName(), model.getModelType(), model.getEmbeddingDimension(), model.getContextWindow(), model.getMaxOutputTokens(), model.getTemperature(),
                 model.getTopP(), Integer.valueOf(1).equals(model.getSupportStream()),
                 Integer.valueOf(1).equals(model.getSupportVision()),
                 Integer.valueOf(1).equals(model.getIsDefault()),

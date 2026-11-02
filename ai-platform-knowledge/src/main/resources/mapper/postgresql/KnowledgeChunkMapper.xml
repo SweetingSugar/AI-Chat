@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.aichat.knowledge.mapper.KnowledgeChunkMapper">
+    <resultMap id="knowledgeChunkRowResultMap"
+               type="com.example.aichat.knowledge.mapper.KnowledgeChunkRow">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="document_id" javaType="java.lang.Long"/>
+            <arg column="chunk_index" javaType="java.lang.Integer"/>
+            <arg column="content" javaType="java.lang.String"/>
+            <arg column="estimated_tokens" javaType="java.lang.Integer"/>
+            <arg column="chunk_metadata" javaType="java.lang.String"/>
+            <arg column="index_version" javaType="java.lang.Long"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="chunkColumns">
+        id, document_id, chunk_index, content, estimated_tokens, chunk_metadata, index_version
+    </sql>
+
+    <select id="findByDocumentId" resultMap="knowledgeChunkRowResultMap">
+        select <include refid="chunkColumns"/>
+        from knowledge_chunk
+        where document_id = #{documentId}
+        order by index_version, chunk_index
+    </select>
+
+    <select id="findByDocumentIdAndIndexVersion" resultMap="knowledgeChunkRowResultMap">
+        select <include refid="chunkColumns"/>
+        from knowledge_chunk
+        where document_id = #{documentId} and index_version = #{indexVersion}
+        order by chunk_index
+    </select>
+
+    <select id="insert" resultType="java.lang.Long">
+        insert into knowledge_chunk
+            (document_id, index_version, chunk_index, content, estimated_tokens, chunk_metadata)
+        values (#{documentId}, #{indexVersion}, #{chunkIndex}, #{content},
+                #{estimatedTokens}, cast(#{metadataJson} as jsonb))
+        returning id
+    </select>
+
+    <delete id="deleteByDocumentId">
+        delete from knowledge_chunk where document_id = #{documentId}
+    </delete>
+
+    <delete id="deleteByDocumentAndIndexVersion">
+        delete from knowledge_chunk
+        where document_id = #{documentId} and index_version = #{indexVersion}
+    </delete>
+</mapper>

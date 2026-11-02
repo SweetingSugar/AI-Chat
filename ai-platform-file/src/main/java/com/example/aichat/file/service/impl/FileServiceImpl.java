@@ -9,6 +9,7 @@ import com.example.aichat.common.security.CurrentUser;
 import com.example.aichat.common.security.CurrentUserProvider;
 import com.example.aichat.file.config.FileStorageProperties;
 import com.example.aichat.file.content.FileContent;
+import com.example.aichat.file.content.DocxTextExtractor;
 import com.example.aichat.file.content.PdfTextExtractor;
 import com.example.aichat.file.dto.FileQueryRequest;
 import com.example.aichat.file.entity.FileMetadata;
@@ -46,15 +47,17 @@ public class FileServiceImpl implements FileService {
     private final CurrentUserProvider currentUserProvider;
     private final FileStorageProperties properties;
     private final PdfTextExtractor pdfTextExtractor;
+    private final DocxTextExtractor docxTextExtractor;
 
     public FileServiceImpl(FileMetadataMapper mapper, ObjectStorage storage,
                            CurrentUserProvider currentUserProvider, FileStorageProperties properties,
-                           PdfTextExtractor pdfTextExtractor) {
+                           PdfTextExtractor pdfTextExtractor, DocxTextExtractor docxTextExtractor) {
         this.mapper = mapper;
         this.storage = storage;
         this.currentUserProvider = currentUserProvider;
         this.properties = properties;
         this.pdfTextExtractor = pdfTextExtractor;
+        this.docxTextExtractor = docxTextExtractor;
     }
 
     @Override

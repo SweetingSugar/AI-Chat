@@ -15,12 +15,14 @@ import com.example.aichat.chat.mapper.ChatSessionMapper;
 import com.example.aichat.chat.model.ChatGenerationResult;
 import com.example.aichat.chat.model.ChatMessagePair;
 import com.example.aichat.chat.service.ChatMessageFileService;
+import com.example.aichat.chat.service.ChatKnowledgeService;
 import com.example.aichat.chat.service.ChatMessageService;
 import com.example.aichat.chat.vo.ChatMessageVO;
 import com.example.aichat.common.api.PageResult;
 import com.example.aichat.common.error.BusinessException;
 import com.example.aichat.common.security.CurrentUser;
 import com.example.aichat.file.vo.FileMetadataVO;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,13 +36,22 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private final ChatSessionMapper sessionMapper;
     private final ChatUserGateway userGateway;
     private final ChatMessageFileService messageFileService;
+    private final ChatKnowledgeService knowledgeService;
 
+    @Autowired
     public ChatMessageServiceImpl(ChatMessageMapper messageMapper, ChatSessionMapper sessionMapper,
-                                  ChatUserGateway userGateway, ChatMessageFileService messageFileService) {
+                                  ChatUserGateway userGateway, ChatMessageFileService messageFileService,
+                                  ChatKnowledgeService knowledgeService) {
         this.messageMapper = messageMapper;
         this.sessionMapper = sessionMapper;
         this.userGateway = userGateway;
         this.messageFileService = messageFileService;
+        this.knowledgeService = knowledgeService;
+    }
+
+    public ChatMessageServiceImpl(ChatMessageMapper messageMapper, ChatSessionMapper sessionMapper,
+                                  ChatUserGateway userGateway, ChatMessageFileService messageFileService) {
+        this(messageMapper, sessionMapper, userGateway, messageFileService, null);
     }
 
     @Override
@@ -58,8 +69,10 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         }
         Page<ChatMessage> result = messageMapper.selectPage(new Page<>(query.page(), query.size()), wrapper);
         Map<Long, List<FileMetadataVO>> attachments = attachments(user.id(), result.getRecords());
+        Map<Long, List<com.example.aichat.chat.vo.ChatKnowledgeSourceVO>> sources = sources(
+                result.getRecords().stream().map(message -> message.id).toList());
         return PageResult.from(result, message -> ChatMessageConverter.toVO(message,
-                attachments.getOrDefault(message.id, List.of())));
+                attachments.getOrDefault(message.id, List.of()), sources.getOrDefault(message.id, List.of())));
     }
 
     @Override
@@ -68,8 +81,11 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         requireOwnedSession(user.id(), sessionId);
         List<ChatMessage> messages = messageMapper.selectHistory(user.id(), sessionId, null);
         Map<Long, List<FileMetadataVO>> attachments = attachments(user.id(), messages);
+        Map<Long, List<com.example.aichat.chat.vo.ChatKnowledgeSourceVO>> sources = sources(
+                messages.stream().map(message -> message.id).toList());
         return messages.stream()
-                .map(message -> ChatMessageConverter.toVO(message, attachments.getOrDefault(message.id, List.of())))
+                .map(message -> ChatMessageConverter.toVO(message, attachments.getOrDefault(message.id, List.of()),
+                        sources.getOrDefault(message.id, List.of())))
                 .toList();
     }
 
@@ -193,6 +209,9 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 .set("last_message_time", LocalDateTime.now()));
     }
 
+    private Map<Long, List<com.example.aichat.chat.vo.ChatKnowledgeSourceVO>> sources(List<Long> messageIds) {
+        return knowledgeService == null ? Map.of() : knowledgeService.findSourcesByMessageIds(messageIds);
+    }
     private Map<Long, List<FileMetadataVO>> attachments(Long userId, List<ChatMessage> messages) {
         if (messages.isEmpty()) return Map.of();
         return messageFileService.findByMessageIds(userId,
