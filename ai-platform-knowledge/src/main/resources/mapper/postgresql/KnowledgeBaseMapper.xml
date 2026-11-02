@@ -18,7 +18,7 @@
             <arg column="active_index_version" javaType="java.lang.Long"/>
             <arg column="status"
                  javaType="com.example.aichat.knowledge.enums.KnowledgeBaseStatus"/>
-            <arg column="deleted" javaType="boolean"/>
+            <arg column="deleted" javaType="_boolean"/>
             <arg column="create_time" javaType="java.time.LocalDateTime"/>
             <arg column="update_time" javaType="java.time.LocalDateTime"/>
         </constructor>
