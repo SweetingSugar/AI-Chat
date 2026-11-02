@@ -49,25 +49,25 @@ public class KnowledgeBaseController {
     }
 
     @GetMapping("/{knowledgeBaseId}")
-    public ApiResponse<KnowledgeBaseVO> get(@PathVariable Long knowledgeBaseId) {
+    public ApiResponse<KnowledgeBaseVO> get(@PathVariable("knowledgeBaseId") Long knowledgeBaseId) {
         return ApiResponse.success(service.get(currentUserProvider.requireCurrentUser().id(), knowledgeBaseId));
     }
 
     @PutMapping("/{knowledgeBaseId}")
-    public ApiResponse<KnowledgeBaseVO> update(@PathVariable Long knowledgeBaseId,
+    public ApiResponse<KnowledgeBaseVO> update(@PathVariable("knowledgeBaseId") Long knowledgeBaseId,
                                                @Valid @RequestBody KnowledgeBaseUpdateRequest request) {
         return ApiResponse.success(service.update(currentUserProvider.requireCurrentUser().id(), knowledgeBaseId, request));
     }
 
     @DeleteMapping("/{knowledgeBaseId}")
-    public ApiResponse<Void> delete(@PathVariable Long knowledgeBaseId) {
+    public ApiResponse<Void> delete(@PathVariable("knowledgeBaseId") Long knowledgeBaseId) {
         service.delete(currentUserProvider.requireCurrentUser().id(), knowledgeBaseId);
         return ApiResponse.success(null);
     }
 
     @PutMapping("/{knowledgeBaseId}/embedding-model")
     public ApiResponse<KnowledgeBaseVO> changeEmbeddingModel(
-            @PathVariable Long knowledgeBaseId,
+            @PathVariable("knowledgeBaseId") Long knowledgeBaseId,
             @Valid @RequestBody KnowledgeBaseEmbeddingModelRequest request) {
         return ApiResponse.success(service.changeEmbeddingModel(
                 currentUserProvider.requireCurrentUser().id(), knowledgeBaseId, request));
@@ -75,7 +75,7 @@ public class KnowledgeBaseController {
 
     @GetMapping("/{knowledgeBaseId}/documents")
     public ApiResponse<PageResult<KnowledgeDocumentVO>> documents(
-            @PathVariable Long knowledgeBaseId,
+            @PathVariable("knowledgeBaseId") Long knowledgeBaseId,
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "size", defaultValue = "20") int size) {
         return ApiResponse.success(service.documentPage(
@@ -84,7 +84,7 @@ public class KnowledgeBaseController {
 
     @PostMapping("/{knowledgeBaseId}/documents/text")
     public ApiResponse<KnowledgeDocumentVO> addText(
-            @PathVariable Long knowledgeBaseId,
+            @PathVariable("knowledgeBaseId") Long knowledgeBaseId,
             @Valid @RequestBody KnowledgeTextDocumentRequest request) {
         return ApiResponse.success(service.addText(
                 currentUserProvider.requireCurrentUser().id(), knowledgeBaseId, request));
@@ -93,7 +93,7 @@ public class KnowledgeBaseController {
     @PostMapping(value = "/{knowledgeBaseId}/documents/file",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<KnowledgeDocumentVO> addFile(
-            @PathVariable Long knowledgeBaseId,
+            @PathVariable("knowledgeBaseId") Long knowledgeBaseId,
             @RequestPart("file") MultipartFile file,
             @RequestParam(name = "title", required = false) String title) {
         return ApiResponse.success(service.addFile(
@@ -101,15 +101,15 @@ public class KnowledgeBaseController {
     }
 
     @DeleteMapping("/{knowledgeBaseId}/documents/{documentId}")
-    public ApiResponse<Void> deleteDocument(@PathVariable Long knowledgeBaseId,
-                                            @PathVariable Long documentId) {
+    public ApiResponse<Void> deleteDocument(@PathVariable("knowledgeBaseId") Long knowledgeBaseId,
+                                            @PathVariable("documentId") Long documentId) {
         service.deleteDocument(currentUserProvider.requireCurrentUser().id(), knowledgeBaseId, documentId);
         return ApiResponse.success(null);
     }
 
     @PostMapping("/{knowledgeBaseId}/documents/{documentId}/retry")
-    public ApiResponse<Void> retryDocument(@PathVariable Long knowledgeBaseId,
-                                           @PathVariable Long documentId) {
+    public ApiResponse<Void> retryDocument(@PathVariable("knowledgeBaseId") Long knowledgeBaseId,
+                                           @PathVariable("documentId") Long documentId) {
         service.retryDocument(currentUserProvider.requireCurrentUser().id(), knowledgeBaseId, documentId);
         return ApiResponse.success(null);
     }

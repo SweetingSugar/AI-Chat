@@ -21,7 +21,7 @@
             <arg column="chunk_count" javaType="java.lang.Integer"/>
             <arg column="error_code" javaType="java.lang.String"/>
             <arg column="error_message" javaType="java.lang.String"/>
-            <arg column="deleted" javaType="boolean"/>
+            <arg column="deleted" javaType="_boolean"/>
             <arg column="create_time" javaType="java.time.LocalDateTime"/>
             <arg column="update_time" javaType="java.time.LocalDateTime"/>
         </constructor>
