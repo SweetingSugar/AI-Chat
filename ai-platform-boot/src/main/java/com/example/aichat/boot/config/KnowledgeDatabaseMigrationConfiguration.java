@@ -11,13 +11,13 @@ import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(
-        prefix = "knowledge.vector",
+        prefix = "knowledge.postgresql",
         name = "migration-enabled",
         havingValue = "true")
 public class KnowledgeDatabaseMigrationConfiguration {
 
     @Bean(name = "knowledgeFlyway")
-    Flyway knowledgeFlyway(@Qualifier("postgresqlDataSource") DataSource dataSource) {
+    Flyway knowledgeFlyway(@Qualifier("knowledgePostgresqlDataSource") DataSource dataSource) {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration/knowledge-postgresql")

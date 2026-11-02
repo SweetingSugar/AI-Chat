@@ -17,12 +17,12 @@ import javax.sql.DataSource;
 @Configuration(proxyBeanMethods = false)
 @MapperScan(
         basePackages = "com.example.aichat.knowledge.mapper",
-        sqlSessionTemplateRef = "postgresqlSqlSessionTemplate")
+        sqlSessionTemplateRef = "knowledgePostgresqlSqlSessionTemplate")
 public class PostgresqlMybatisConfiguration {
 
-    @Bean(name = "postgresqlSqlSessionFactory")
-    SqlSessionFactory postgresqlSqlSessionFactory(
-            @Qualifier("postgresqlDataSource") DataSource dataSource) throws Exception {
+    @Bean(name = "knowledgePostgresqlSqlSessionFactory")
+    SqlSessionFactory knowledgePostgresqlSqlSessionFactory(
+            @Qualifier("knowledgePostgresqlDataSource") DataSource dataSource) throws Exception {
         MybatisSqlSessionFactoryBean factory = new MybatisSqlSessionFactoryBean();
         factory.setDataSource(dataSource);
         factory.setMapperLocations(new PathMatchingResourcePatternResolver()
@@ -36,15 +36,15 @@ public class PostgresqlMybatisConfiguration {
         return factory.getObject();
     }
 
-    @Bean(name = "postgresqlSqlSessionTemplate")
-    SqlSessionTemplate postgresqlSqlSessionTemplate(
-            @Qualifier("postgresqlSqlSessionFactory") SqlSessionFactory sqlSessionFactory) {
+    @Bean(name = "knowledgePostgresqlSqlSessionTemplate")
+    SqlSessionTemplate knowledgePostgresqlSqlSessionTemplate(
+            @Qualifier("knowledgePostgresqlSqlSessionFactory") SqlSessionFactory sqlSessionFactory) {
         return new SqlSessionTemplate(sqlSessionFactory);
     }
 
-    @Bean(name = "postgresqlTransactionManager")
-    DataSourceTransactionManager postgresqlTransactionManager(
-            @Qualifier("postgresqlDataSource") DataSource dataSource) {
+    @Bean(name = "knowledgePostgresqlTransactionManager")
+    DataSourceTransactionManager knowledgePostgresqlTransactionManager(
+            @Qualifier("knowledgePostgresqlDataSource") DataSource dataSource) {
         return new DataSourceTransactionManager(dataSource);
     }
 }

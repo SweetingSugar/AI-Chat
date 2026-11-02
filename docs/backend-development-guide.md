@@ -225,8 +225,8 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 | 配置域 | 环境变量 | 当前默认值或用途 |
 | --- | --- | --- |
 | HTTP | `SERVER_PORT` | 服务端口，默认 `8080` |
-| MySQL | `MYSQL_URL`、`MYSQL_USERNAME`、`MYSQL_PASSWORD` | 业务数据源，默认库名为 `ai_chat` |
-| PostgreSQL | `POSTGRES_URL`、`POSTGRES_USERNAME`、`POSTGRES_PASSWORD` | 独立 `postgresqlDataSource` 和 `postgresqlJdbcTemplate`，不参与现有 MyBatis-Plus 与 Flyway 链路 |
+| MySQL | `MYSQL_URL`、`MYSQL_USERNAME`、`MYSQL_PASSWORD` | 默认业务数据源，普通系统、AI、聊天、文件和管理模块使用，默认库名为 `ai_chat` |
+| 知识库 PostgreSQL | `POSTGRES_URL`、`POSTGRES_USERNAME`、`POSTGRES_PASSWORD` | 知识库专用数据源，承载 pgvector 及知识库 Mapper；迁移开关见下方说明 |
 | Redis | `REDIS_HOST`、`REDIS_PORT`、`REDIS_PASSWORD`、`REDIS_DATABASE` | Sa-Token 与 RedisTemplate 连接 |
 | MinIO | `MINIO_ENDPOINT`、`MINIO_ACCESS_KEY`、`MINIO_SECRET_KEY`、`MINIO_BUCKET`、`MINIO_SECURE` | 私有文件对象存储 |
 | 文件限制 | `FILE_MAX_SIZE`、`FILE_MAX_REQUEST_SIZE`、`MINIO_PRESIGN_EXPIRE_SECONDS` | 上传大小、请求大小和预签名 URL 有效期 |
@@ -234,7 +234,7 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 | 线程池 | `ai.executor-*` | AI 执行器核心线程、最大线程与队列容量 |
 | Sa-Token | `SA_TOKEN_NAME`、`SA_TOKEN_TIMEOUT`、`SA_TOKEN_SIGNING_KEY` | Token 名称和会话有效期；当前使用 UUID Token，`SA_TOKEN_SIGNING_KEY` 映射到 JWT 密钥配置但未参与当前 UUID 登录流程 |
 
-需要访问 PostgreSQL 时，通过 `@Qualifier("postgresqlJdbcTemplate")` 注入对应的 `JdbcTemplate`；MySQL 仍是默认主数据源，现有 Mapper 和 Flyway 迁移不变。
+MySQL 是默认主数据源，普通业务 Mapper 绑定 `mysqlSqlSessionTemplate`，默认事务绑定 `mysqlTransactionManager`。知识库模块通过 `knowledge.datasource.postgresql` 配置 PostgreSQL，并使用 `knowledgePostgresqlSqlSessionTemplate` 与 `knowledgePostgresqlTransactionManager`；不要依赖数据源类型或默认 Bean 名称推断数据库，也不要在普通业务中注入知识库数据源。知识库迁移由 `KNOWLEDGE_POSTGRESQL_MIGRATION_ENABLED` 控制，迁移脚本位于 `classpath:db/migration/knowledge-postgresql`。
 
 Flyway 在默认配置下开启，迁移位置为 `classpath:db/migration`；`dev` Profile 中关闭 Flyway。Actuator 暴露 `health` 与 `info` 端点。
 
