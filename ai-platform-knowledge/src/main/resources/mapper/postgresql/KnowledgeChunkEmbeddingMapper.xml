@@ -10,7 +10,7 @@
             <arg column="document_id" javaType="java.lang.Long"/>
             <arg column="title" javaType="java.lang.String"/>
             <arg column="content" javaType="java.lang.String"/>
-            <arg column="distance" javaType="double"/>
+            <arg column="distance" javaType="_double"/>
         </constructor>
     </resultMap>
 
