@@ -35,7 +35,7 @@ public class OpenAiEmbeddingProvider implements EmbeddingProvider {
                 .apiKey(credentialResolver.resolve(snapshot.apiKeyCiphertext()))
                 .modelName(snapshot.modelCode())
                 .timeout(Duration.ofMillis(snapshot.readTimeout() == null ? 120000 : snapshot.readTimeout()));
-        if (snapshot.embeddingDimension() != null) {
+        if (snapshot.embeddingDimension() != null && snapshot.providerId() != 4L) {
             builder.dimensions(snapshot.embeddingDimension());
         }
         Response<List<Embedding>> response = builder.build().embedAll(
