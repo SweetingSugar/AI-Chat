@@ -1,9 +1,6 @@
 package com.example.aichat.ai.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,6 +13,7 @@ public class AiModel {
     public String modelCode;
     public String modelName;
     public String modelType;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     public Integer embeddingDimension;
     public Integer contextWindow;
     public Integer maxOutputTokens;
