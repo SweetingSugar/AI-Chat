@@ -1,6 +1,7 @@
 package com.example.aichat.ai.service.impl;
 
 import com.example.aichat.ai.dto.request.AiModelUpsertRequest;
+import com.example.aichat.ai.dto.response.AiEmbeddingModelDTO;
 import com.example.aichat.ai.dto.response.AiModelDTO;
 import com.example.aichat.ai.dto.response.AiModelManagementDTO;
 import com.example.aichat.ai.entity.AiModel;
@@ -9,6 +10,7 @@ import com.example.aichat.ai.enums.AiProviderType;
 import com.example.aichat.ai.mapper.AiModelMapper;
 import com.example.aichat.ai.service.AiProviderService;
 import com.example.aichat.common.error.BusinessException;
+import com.example.aichat.common.error.ErrorCode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -71,6 +73,64 @@ class AiModelServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode.code")
                 .isEqualTo("VALIDATION_ERROR");
+    }
+
+    @Test
+    void availableEmbeddingModelsFilterAndMapPublicFields() {
+        AiModel first = model(2L, "EMBEDDING");
+        first.providerId = 1L;
+        first.modelCode = "text-embedding-3-small";
+        first.modelName = "Text Embedding 3 Small";
+        first.embeddingDimension = 1536;
+        first.sort = 2;
+
+        AiModel second = model(1L, "EMBEDDING");
+        second.providerId = 1L;
+        second.modelCode = "text-embedding-ada-002";
+        second.modelName = "Text Embedding Ada 002";
+        second.embeddingDimension = 1536;
+        second.sort = 1;
+
+        AiModel chat = model(3L, "CHAT");
+        chat.sort = 0;
+
+        AiModel disabled = model(4L, "EMBEDDING");
+        disabled.status = 0;
+
+        AiModel disabledProviderModel = model(5L, "EMBEDDING");
+        disabledProviderModel.providerId = 2L;
+        disabledProviderModel.embeddingDimension = 768;
+
+        AiProvider disabledProvider = enabledProvider();
+        disabledProvider.id = 2L;
+        disabledProvider.status = 0;
+
+        when(modelMapper.selectList(any()))
+                .thenReturn(List.of(second, first, chat, disabled, disabledProviderModel));
+        when(providerService.getRequired(1L)).thenReturn(enabledProvider());
+        when(providerService.getRequired(2L)).thenReturn(disabledProvider);
+
+        List<AiEmbeddingModelDTO> result = service().listAvailableEmbeddingModels();
+
+        assertThat(result).extracting(AiEmbeddingModelDTO::id).containsExactly(1L, 2L);
+        assertThat(result.get(1)).satisfies(model -> {
+            assertThat(model.providerId()).isEqualTo(1L);
+            assertThat(model.providerName()).isEqualTo("OpenAI");
+            assertThat(model.modelCode()).isEqualTo("text-embedding-3-small");
+            assertThat(model.modelName()).isEqualTo("Text Embedding 3 Small");
+            assertThat(model.embeddingDimension()).isEqualTo(1536);
+        });
+    }
+
+    @Test
+    void excludesEmbeddingModelWhenProviderLookupFails() {
+        AiModel embedding = model(2L, "EMBEDDING");
+        embedding.embeddingDimension = 1536;
+        when(modelMapper.selectList(any())).thenReturn(List.of(embedding));
+        when(providerService.getRequired(1L))
+                .thenThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+
+        assertThat(service().listAvailableEmbeddingModels()).isEmpty();
     }
 
     @Test

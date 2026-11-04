@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.example.aichat.ai.api.AiModelQueryService;
 import com.example.aichat.ai.api.AiModelUsageValidator;
 import com.example.aichat.ai.dto.request.AiModelUpsertRequest;
+import com.example.aichat.ai.dto.response.AiEmbeddingModelDTO;
 import com.example.aichat.ai.dto.response.AiModelDTO;
 import com.example.aichat.ai.dto.response.AiModelManagementDTO;
 import com.example.aichat.ai.entity.AiModel;
@@ -111,6 +112,19 @@ public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
     }
 
     @Override
+    public List<AiEmbeddingModelDTO> listAvailableEmbeddingModels() {
+        return modelMapper.selectList(Wrappers.<AiModel>query()
+                        .eq("status", 1)
+                        .eq("model_type", AiModelType.EMBEDDING.name())
+                        .orderByAsc("sort", "id"))
+                .stream()
+                .filter(model -> Integer.valueOf(1).equals(model.status))
+                .filter(model -> AiModelType.EMBEDDING.name().equalsIgnoreCase(model.modelType))
+                .flatMap(model -> availableEmbeddingDto(model).stream())
+                .toList();
+    }
+
+    @Override
     public AiModel requireEnabledEmbedding(Long modelId) {
         AiModel model = getRequired(modelId);
         if (!Integer.valueOf(1).equals(model.status)) {
@@ -208,6 +222,19 @@ public class AiModelServiceImpl implements AiModelService, AiModelQueryService {
         }
         return currentType != requestedType
                 || !java.util.Objects.equals(model.embeddingDimension, requestedDimension);
+    }
+
+    private java.util.Optional<AiEmbeddingModelDTO> availableEmbeddingDto(AiModel model) {
+        try {
+            AiProvider provider = providerService.getRequired(model.providerId);
+            return Integer.valueOf(1).equals(provider.getStatus())
+                    ? java.util.Optional.of(new AiEmbeddingModelDTO(
+                            model.id, model.providerId, provider.providerName, model.modelCode,
+                            model.modelName, model.embeddingDimension))
+                    : java.util.Optional.empty();
+        } catch (BusinessException ignored) {
+            return java.util.Optional.empty();
+        }
     }
 
     private java.util.Optional<AiModelDTO> availableDto(AiModel model) {

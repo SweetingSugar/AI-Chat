@@ -1,6 +1,7 @@
 package com.example.aichat.chat.controller;
 
 import com.example.aichat.ai.api.AiModelQueryService;
+import com.example.aichat.ai.dto.response.AiEmbeddingModelDTO;
 import com.example.aichat.ai.dto.response.AiModelDTO;
 import com.example.aichat.common.api.ApiResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,5 +22,10 @@ public class ChatModelController {
     @GetMapping
     public ApiResponse<List<AiModelDTO>> list() {
         return ApiResponse.success(modelQueryService.listAvailableModels());
+    }
+
+    @GetMapping("/embedding")
+    public ApiResponse<List<AiEmbeddingModelDTO>> listEmbeddingModels() {
+        return ApiResponse.success(modelQueryService.listAvailableEmbeddingModels());
     }
 }
