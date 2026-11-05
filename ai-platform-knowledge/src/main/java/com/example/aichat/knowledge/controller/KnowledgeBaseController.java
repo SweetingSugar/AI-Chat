@@ -9,6 +9,7 @@ import com.example.aichat.knowledge.dto.KnowledgeBaseUpdateRequest;
 import com.example.aichat.knowledge.dto.KnowledgeTextDocumentRequest;
 import com.example.aichat.knowledge.service.KnowledgeBaseService;
 import com.example.aichat.knowledge.vo.KnowledgeBaseVO;
+import com.example.aichat.knowledge.vo.KnowledgeDocumentContentVO;
 import com.example.aichat.knowledge.vo.KnowledgeDocumentVO;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
@@ -80,6 +81,14 @@ public class KnowledgeBaseController {
             @RequestParam(name = "size", defaultValue = "20") int size) {
         return ApiResponse.success(service.documentPage(
                 currentUserProvider.requireCurrentUser().id(), knowledgeBaseId, page, size));
+    }
+
+    @GetMapping("/{knowledgeBaseId}/documents/{documentId}/content")
+    public ApiResponse<KnowledgeDocumentContentVO> documentContent(
+            @PathVariable("knowledgeBaseId") Long knowledgeBaseId,
+            @PathVariable("documentId") Long documentId) {
+        return ApiResponse.success(service.documentContent(
+                currentUserProvider.requireCurrentUser().id(), knowledgeBaseId, documentId));
     }
 
     @PostMapping("/{knowledgeBaseId}/documents/text")

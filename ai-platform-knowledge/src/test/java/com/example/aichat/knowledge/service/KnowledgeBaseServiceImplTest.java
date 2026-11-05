@@ -11,6 +11,7 @@ import com.example.aichat.knowledge.repository.KnowledgeBaseRepository;
 import com.example.aichat.knowledge.repository.KnowledgeDocumentRepository;
 import com.example.aichat.knowledge.repository.KnowledgeIndexTaskRepository;
 import com.example.aichat.knowledge.service.impl.KnowledgeBaseServiceImpl;
+import com.example.aichat.knowledge.vo.KnowledgeDocumentContentVO;
 import com.example.aichat.common.error.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,6 +62,54 @@ class KnowledgeBaseServiceImplTest {
         verify(documentRepository, never()).markDeleted(21L);
     }
 
+    @Test
+    void returnsOriginalTextDocumentContent() {
+        when(baseRepository.findOwnedActive(100L, 12L)).thenReturn(Optional.of(base(12L)));
+        when(documentRepository.findById(21L)).thenReturn(Optional.of(document(
+                21L, 12L, KnowledgeDocumentSourceType.TEXT, null, " 第一条\n\n第二条 ")));
+
+        KnowledgeDocumentContentVO result = service.documentContent(100L, 12L, 21L);
+
+        assertEquals(21L, result.documentId());
+        assertEquals("title", result.title());
+        assertEquals(" 第一条\n\n第二条 ", result.content());
+    }
+
+    @Test
+    void rejectsContentWhenPathKnowledgeBaseDoesNotOwnDocument() {
+        when(baseRepository.findOwnedActive(100L, 12L)).thenReturn(Optional.of(base(12L)));
+        when(documentRepository.findById(21L)).thenReturn(Optional.of(document(21L, 11L)));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.documentContent(100L, 12L, 21L));
+
+        assertEquals("KNOWLEDGE_DOCUMENT_NOT_FOUND", exception.errorCode().code());
+    }
+
+    @Test
+    void rejectsContentForNonTextDocument() {
+        when(baseRepository.findOwnedActive(100L, 12L)).thenReturn(Optional.of(base(12L)));
+        when(documentRepository.findById(21L)).thenReturn(Optional.of(document(
+                21L, 12L, KnowledgeDocumentSourceType.FILE, 31L, null)));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.documentContent(100L, 12L, 21L));
+
+        assertEquals("KNOWLEDGE_DOCUMENT_CONTENT_NOT_SUPPORTED", exception.errorCode().code());
+    }
+
+    @Test
+    void rejectsEmptyTextDocumentContent() {
+        when(baseRepository.findOwnedActive(100L, 12L)).thenReturn(Optional.of(base(12L)));
+        when(documentRepository.findById(21L)).thenReturn(Optional.of(document(
+                21L, 12L, KnowledgeDocumentSourceType.TEXT, null, "  ")));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.documentContent(100L, 12L, 21L));
+
+        assertEquals("KNOWLEDGE_DOCUMENT_PARSE_FAILED", exception.errorCode().code());
+    }
+
     private KnowledgeBaseRecord base(Long id) {
         return new KnowledgeBaseRecord(id, 100L, "base", null, 30L, 1,
                 null, null, null, 1L, KnowledgeBaseStatus.ACTIVE, false,
@@ -68,8 +117,15 @@ class KnowledgeBaseServiceImplTest {
     }
 
     private KnowledgeDocumentRecord document(Long id, Long baseId) {
-        return new KnowledgeDocumentRecord(id, baseId, KnowledgeDocumentSourceType.TEXT, null,
-                "title", "content", null, KnowledgeDocumentStatus.READY, 1L, 1L,
+        return document(id, baseId, KnowledgeDocumentSourceType.TEXT, null, "content");
+    }
+
+    private KnowledgeDocumentRecord document(Long id, Long baseId,
+                                             KnowledgeDocumentSourceType sourceType,
+                                             Long fileId,
+                                             String rawContent) {
+        return new KnowledgeDocumentRecord(id, baseId, sourceType, fileId,
+                "title", rawContent, null, KnowledgeDocumentStatus.READY, 1L, 1L,
                 1, null, null, false, LocalDateTime.now(), LocalDateTime.now());
     }
 }

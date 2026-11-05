@@ -21,6 +21,7 @@ import com.example.aichat.knowledge.repository.KnowledgeDocumentRepository;
 import com.example.aichat.knowledge.repository.KnowledgeIndexTaskRepository;
 import com.example.aichat.knowledge.service.KnowledgeBaseService;
 import com.example.aichat.knowledge.vo.KnowledgeBaseVO;
+import com.example.aichat.knowledge.vo.KnowledgeDocumentContentVO;
 import com.example.aichat.knowledge.vo.KnowledgeDocumentVO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -119,6 +120,19 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         return new PageResult<>(documentRepository.findPageByKnowledgeBaseId(knowledgeBaseId,
                         normalizedPage, normalizedSize).stream().map(this::toDocumentVO).toList(),
                 total, normalizedPage, normalizedSize, pages(total, normalizedSize));
+    }
+
+    @Override
+    public KnowledgeDocumentContentVO documentContent(Long userId, Long knowledgeBaseId, Long documentId) {
+        KnowledgeDocumentRecord document = requireDocument(userId, knowledgeBaseId, documentId);
+        if (document.sourceType() != KnowledgeDocumentSourceType.TEXT) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_DOCUMENT_CONTENT_NOT_SUPPORTED);
+        }
+        if (!StringUtils.hasText(document.rawContent())) {
+            throw new BusinessException(ErrorCode.KNOWLEDGE_DOCUMENT_PARSE_FAILED,
+                    "Knowledge document content is empty");
+        }
+        return new KnowledgeDocumentContentVO(document.id(), document.title(), document.rawContent());
     }
 
     @Override

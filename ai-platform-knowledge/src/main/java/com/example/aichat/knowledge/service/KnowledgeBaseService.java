@@ -6,6 +6,7 @@ import com.example.aichat.knowledge.dto.KnowledgeBaseEmbeddingModelRequest;
 import com.example.aichat.knowledge.dto.KnowledgeBaseUpdateRequest;
 import com.example.aichat.knowledge.dto.KnowledgeTextDocumentRequest;
 import com.example.aichat.knowledge.vo.KnowledgeBaseVO;
+import com.example.aichat.knowledge.vo.KnowledgeDocumentContentVO;
 import com.example.aichat.knowledge.vo.KnowledgeDocumentVO;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,6 +25,8 @@ public interface KnowledgeBaseService {
                                          KnowledgeBaseEmbeddingModelRequest request);
 
     PageResult<KnowledgeDocumentVO> documentPage(Long userId, Long knowledgeBaseId, int page, int size);
+
+    KnowledgeDocumentContentVO documentContent(Long userId, Long knowledgeBaseId, Long documentId);
 
     KnowledgeDocumentVO addText(Long userId, Long knowledgeBaseId, KnowledgeTextDocumentRequest request);
 
