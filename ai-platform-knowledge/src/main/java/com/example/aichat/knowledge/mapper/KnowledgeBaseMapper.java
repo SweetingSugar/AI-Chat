@@ -12,6 +12,13 @@ public interface KnowledgeBaseMapper {
 
     long countByUserId(@Param("userId") Long userId);
 
+    List<KnowledgeBaseRecord> findPageAll(@Param("limit") int limit,
+                                          @Param("offset") int offset);
+
+    long countAll();
+
+    KnowledgeBaseRecord findNotDeletedById(@Param("id") Long id);
+
     KnowledgeBaseRecord findById(@Param("id") Long id);
 
     KnowledgeBaseRecord findOwnedActive(@Param("userId") Long userId, @Param("id") Long id);

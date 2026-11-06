@@ -24,6 +24,19 @@ public class KnowledgeBaseRepository {
         return mapper.countByUserId(userId);
     }
 
+    public List<KnowledgeBaseRecord> findPageAll(int page, int size) {
+        int offset = Math.max(0, page - 1) * size;
+        return mapper.findPageAll(size, offset);
+    }
+
+    public long countAll() {
+        return mapper.countAll();
+    }
+
+    public Optional<KnowledgeBaseRecord> findNotDeletedById(Long id) {
+        return Optional.ofNullable(mapper.findNotDeletedById(id));
+    }
+
     public Optional<KnowledgeBaseRecord> findById(Long id) {
         return Optional.ofNullable(mapper.findById(id));
     }

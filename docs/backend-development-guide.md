@@ -21,7 +21,7 @@
 
 ```text
 ai-platform-boot
- ├─ ai-platform-admin   后台 AI 配置与统计接口
+ ├─ ai-platform-admin   后台 AI 配置、统计、文件与知识库查询接口
  ├─ ai-platform-chat    会话、消息、流式生成
  ├─ ai-platform-file    MinIO 文件存储、元数据和附件关联能力
  ├─ ai-platform-system  用户、登录、角色、权限
@@ -36,7 +36,7 @@ ai-platform-boot
 | `ai` | AI 供应商/模型配置、凭证加密、模型路由、上下文裁剪、流式调用、调用日志与用量统计 | `DefaultAiChatService`、`AiModelRouter` |
 | `chat` | 聊天会话、消息历史、SSE 生成与重新生成、生成任务状态管理 | `ChatController`、`ChatStreamOrchestrator` |
 | `file` | MinIO 文件上传、下载、删除、元数据、预签名 URL、聊天附件关联 | `FileController`、`AdminFileController`、`FileServiceImpl` |
-| `admin` | 供应商与模型后台管理、看板及用户/聊天/Token 统计 | `AiProviderController`、`AiModelController`、`AdminStatisticsController` |
+| `admin` | 供应商与模型后台管理、看板及用户/聊天/Token 统计、文件与知识库只读查询 | `AiProviderController`、`AiModelController`、`AdminStatisticsController`、`AdminFileController`、`AdminKnowledgeBaseController` |
 | `boot` | 聚合各模块并作为可执行 Spring Boot 应用启动 | `AiPlatformApplication` |
 
 ## 3. 已实现业务能力
@@ -234,7 +234,7 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 | 线程池 | `ai.executor-*` | AI 执行器核心线程、最大线程与队列容量 |
 | Sa-Token | `SA_TOKEN_NAME`、`SA_TOKEN_TIMEOUT`、`SA_TOKEN_SIGNING_KEY` | Token 名称和会话有效期；当前使用 UUID Token，`SA_TOKEN_SIGNING_KEY` 映射到 JWT 密钥配置但未参与当前 UUID 登录流程 |
 
-MySQL 是默认主数据源，普通业务 Mapper 绑定 `mysqlSqlSessionTemplate`，默认事务绑定 `mysqlTransactionManager`。知识库模块通过 `knowledge.datasource.postgresql` 配置 PostgreSQL，并使用 `knowledgePostgresqlSqlSessionTemplate` 与 `knowledgePostgresqlTransactionManager`；不要依赖数据源类型或默认 Bean 名称推断数据库，也不要在普通业务中注入知识库数据源。知识库迁移由 `KNOWLEDGE_POSTGRESQL_MIGRATION_ENABLED` 控制，迁移脚本位于 `classpath:db/migration/knowledge-postgresql`。
+MySQL 是默认主数据源，普通业务 Mapper 绑定 `mysqlSqlSessionTemplate`，默认事务绑定 `mysqlTransactionManager`。知识库模块通过 `knowledge.datasource.postgresql` 配置 PostgreSQL，并使用 `knowledgePostgresqlSqlSessionTemplate` 与 `knowledgePostgresqlTransactionManager`；不要依赖数据源类型或默认 Bean 名称推断数据库，也不要在普通业务中注入知识库数据源。知识库迁移由 `KNOWLEDGE_POSTGRESQL_MIGRATION_ENABLED` 控制，迁移脚本位于 `classpath:db/migration/knowledge-postgresql`。管理员知识库查询同样通过知识库模块的 PostgreSQL 数据源完成，不进行跨 MySQL/PostgreSQL 的用户 Join，仅返回 `userId`。
 
 Flyway 在默认配置下开启，迁移位置为 `classpath:db/migration`；`dev` Profile 中关闭 Flyway。Actuator 暴露 `health` 与 `info` 端点。
 
@@ -249,5 +249,6 @@ Flyway 在默认配置下开启，迁移位置为 `classpath:db/migration`；`de
 | 流式聊天主链路 | `ChatServiceImpl`、`ChatStreamOrchestrator`、`ChatGenerationServiceImpl` |
 | 会话、消息持久化和历史上下文 | `ChatSessionServiceImpl`、`ChatMessageServiceImpl`、对应 Mapper XML |
 | 文件上传、MinIO 和附件关联 | `ai-platform-file` 的 `FileServiceImpl`、`MinioObjectStorage`；`ai-platform-chat` 的 `ChatMessageFileServiceImpl` |
+| 管理员知识库查询 | `ai-platform-admin` 的 `AdminKnowledgeBaseController`；`ai-platform-knowledge` 的 `KnowledgeBaseAdminService`，使用 PostgreSQL 数据源 |
 | 统计指标口径 | `AdminStatisticsServiceImpl`、`AdminStatisticsMapper.xml` |
 | 数据表字段与索引 | 各模块 `src/main/resources/db/migration/*.sql` |

@@ -374,6 +374,38 @@ AI 附件相关错误码如下：
 | `GET /api/admin/files/{fileId}/presigned-url` | `file:download` | 获取任意用户活动文件的临时下载 URL |
 | `DELETE /api/admin/files/{fileId}` | `file:delete` | 删除任意用户文件 |
 
+### 4.5 管理员知识库接口
+
+管理员知识库接口均需要 `knowledge:read` 权限，只读查询全部未逻辑删除的知识库及其文档。`page` 小于 1 时按 1 处理，`size` 限制在 1–100。
+
+| 方法与路径 | 权限 | 说明 |
+| --- | --- | --- |
+| `GET /api/admin/knowledge-bases?page=1&size=20` | `knowledge:read` | 分页查询全部未删除知识库 |
+| `GET /api/admin/knowledge-bases/{knowledgeBaseId}/documents?page=1&size=20` | `knowledge:read` | 查询指定知识库的未删除文档 |
+| `GET /api/admin/knowledge-bases/{knowledgeBaseId}/documents/{documentId}/content` | `knowledge:read` | 查询文本文档原始内容 |
+
+知识库列表对象包含普通知识库字段以及所属用户 `userId`；文档列表对象使用既有 `KnowledgeDocumentVO` 字段。已删除知识库和文档不会返回。内容接口只支持 `TEXT` 文档；`FILE` 文档应使用返回的 `fileId` 调用管理员文件详情或预签名 URL 接口。
+
+知识库列表对象示例：
+
+```json
+{
+  "id": 12,
+  "userId": 100,
+  "name": "产品手册",
+  "description": "产品相关资料",
+  "embeddingModelId": 30,
+  "embeddingModelVersion": 1,
+  "pendingEmbeddingModelId": null,
+  "pendingEmbeddingModelVersion": null,
+  "activeIndexVersion": 1,
+  "reindexing": false,
+  "status": "ACTIVE",
+  "createTime": "2026-11-05T10:00:00",
+  "updateTime": "2026-11-05T10:00:00"
+}
+```
+
 ## 5. 后台用户、角色与权限
 
 本节接口均需认证，并需要表中列出的权限码。用户接口返回的用户对象与 2.1 一致；角色、权限列表与详情均返回实体字段。

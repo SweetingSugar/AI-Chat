@@ -44,6 +44,26 @@
         where user_id = #{userId} and deleted = false
     </select>
 
+    <select id="findPageAll" resultMap="knowledgeBaseResultMap">
+        select <include refid="baseColumns"/>
+        from knowledge_base
+        where deleted = false
+        order by update_time desc, id desc
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="countAll" resultType="long">
+        select count(*)
+        from knowledge_base
+        where deleted = false
+    </select>
+
+    <select id="findNotDeletedById" resultMap="knowledgeBaseResultMap">
+        select <include refid="baseColumns"/>
+        from knowledge_base
+        where id = #{id} and deleted = false
+    </select>
+
     <select id="findById" resultMap="knowledgeBaseResultMap">
         select <include refid="baseColumns"/>
         from knowledge_base

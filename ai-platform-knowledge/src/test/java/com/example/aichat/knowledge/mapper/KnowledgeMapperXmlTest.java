@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.example.aichat.knowledge.enums.KnowledgeDocumentSourceType;
 import com.example.aichat.knowledge.model.KnowledgeChunkEmbeddingRecord;
+import com.example.aichat.knowledge.model.KnowledgeBaseRecord;
 import com.example.aichat.knowledge.model.KnowledgeChunkSearchResult;
 import com.example.aichat.knowledge.model.KnowledgeIndexTaskRecord;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -102,5 +103,21 @@ class KnowledgeMapperXmlTest {
         assertThat(task.id()).isEqualTo(taskId);
         assertThat(task.status().name()).isEqualTo("RUNNING");
         assertThat(taskMapper.claimNext()).isNull();
+    }
+
+    @Test
+    void pagesOnlyNonDeletedKnowledgeBases() {
+        long initialCount = baseMapper.countAll();
+        Long visibleId = baseMapper.insert(210L, "管理员可见知识库", null, 30L, 1);
+        Long deletedId = baseMapper.insert(211L, "管理员不可见知识库", null, 30L, 1);
+        baseMapper.markDeleted(211L, deletedId);
+
+        assertThat(baseMapper.countAll()).isEqualTo(initialCount + 1);
+        assertThat(baseMapper.findNotDeletedById(visibleId).id()).isEqualTo(visibleId);
+        assertThat(baseMapper.findNotDeletedById(deletedId)).isNull();
+        assertThat(baseMapper.findPageAll(100, 0))
+                .extracting(KnowledgeBaseRecord::id)
+                .contains(visibleId)
+                .doesNotContain(deletedId);
     }
 }
