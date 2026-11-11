@@ -3,6 +3,7 @@ package com.example.aichat.boot.config;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.example.aichat.knowledge.mapper.KnowledgeBaseMapper;
 import com.example.aichat.system.mapper.UserMapper;
+import com.example.aichat.tool.mapper.ToolDefinitionMapper;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.SqlSessionTemplate;
@@ -53,6 +54,7 @@ class PostgresqlMybatisConfigurationTest {
                     .getDataSource())
                     .isSameAs(context.getBean("mysqlDataSource"));
             assertThat(context.getBean(UserMapper.class)).isNotNull();
+            assertThat(context.getBean(ToolDefinitionMapper.class)).isNotNull();
         });
     }
 

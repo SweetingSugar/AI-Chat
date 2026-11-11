@@ -23,7 +23,8 @@ import javax.sql.DataSource;
                 "com.example.aichat.ai.mapper",
                 "com.example.aichat.chat.mapper",
                 "com.example.aichat.admin.mapper",
-                "com.example.aichat.file.mapper"
+                "com.example.aichat.file.mapper",
+                "com.example.aichat.tool.mapper"
         },
         sqlSessionTemplateRef = "mysqlSqlSessionTemplate")
 public class MysqlMybatisConfiguration {
