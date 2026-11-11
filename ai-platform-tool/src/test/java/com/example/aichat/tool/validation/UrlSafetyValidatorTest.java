@@ -9,10 +9,31 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class UrlSafetyValidatorTest {
     @Test
-    void rejectsLoopbackAddressesByDefault() {
+    void permitsLoopbackAddressesByDefault() {
         UrlSafetyValidator validator = new UrlSafetyValidator(properties(false));
 
-        assertThatThrownBy(() -> validator.validate("http://127.0.0.1/api"))
+        assertThat(validator.validate("http://127.0.0.1/api").getHost()).isEqualTo("127.0.0.1");
+        assertThat(validator.validate("http://localhost/api").getHost()).isEqualTo("localhost");
+        assertThat(validator.validate("http://[::1]/api").getHost()).isEqualTo("[::1]");
+    }
+
+    @Test
+    void permitsIpv4MappedLoopbackByDefault() {
+        UrlSafetyValidator validator = new UrlSafetyValidator(properties(false));
+
+        assertThat(validator.validate("http://[::ffff:127.0.0.1]/api").getHost())
+                .isEqualTo("[::ffff:127.0.0.1]");
+    }
+
+    @Test
+    void rejectsAnyLocalAddresses() {
+        UrlSafetyValidator validator = new UrlSafetyValidator(properties(false));
+
+        assertThatThrownBy(() -> validator.validate("http://0.0.0.0/api"))
+                .isInstanceOf(BusinessException.class)
+                .extracting(exception -> ((BusinessException) exception).errorCode())
+                .isEqualTo(com.example.aichat.common.error.ErrorCode.TOOL_CONFIG_INVALID);
+        assertThatThrownBy(() -> validator.validate("http://[::]/api"))
                 .isInstanceOf(BusinessException.class)
                 .extracting(exception -> ((BusinessException) exception).errorCode())
                 .isEqualTo(com.example.aichat.common.error.ErrorCode.TOOL_CONFIG_INVALID);
