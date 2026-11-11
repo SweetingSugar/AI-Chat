@@ -49,7 +49,7 @@ public class ToolConfiguration {
     }
 
     @Bean
-    @ConditionalOnBean(RestClient.Builder.class)
+    @ConditionalOnBean(AiCredentialCipher.class)
     public HttpToolExecutor httpToolExecutor(RestClient.Builder restClientBuilder,
                                               ToolProperties properties,
                                               ToolConfigCodec configCodec,

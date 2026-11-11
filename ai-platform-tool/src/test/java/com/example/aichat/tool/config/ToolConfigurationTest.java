@@ -1,12 +1,20 @@
 package com.example.aichat.tool.config;
 
+import com.example.aichat.ai.config.AiCredentialCipher;
+import com.example.aichat.tool.executor.HttpToolExecutor;
+import com.example.aichat.tool.enums.ToolType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.aichat.tool.validation.TemplateValueResolver;
 import com.example.aichat.tool.validation.ToolConfigCodec;
 import com.example.aichat.tool.validation.UrlSafetyValidator;
 import io.modelcontextprotocol.json.schema.JsonSchemaValidator;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.web.client.RestClient;
+
+import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,6 +49,21 @@ class ToolConfigurationTest {
                     assertThat(properties.getDefaultReadTimeout()).isEqualTo(60);
                     assertThat(properties.getMaxTimeout()).isEqualTo(600);
                     assertThat(properties.isAllowPrivateNetwork()).isFalse();
+                });
+    }
+
+    @Test
+    void registersHttpToolExecutorWithSpringBootRestClientAutoConfiguration() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(RestClientAutoConfiguration.class))
+                .withUserConfiguration(ToolConfiguration.class)
+                .withBean(ObjectMapper.class, ObjectMapper::new)
+                .withBean(AiCredentialCipher.class,
+                        () -> new AiCredentialCipher(Base64.getEncoder().encodeToString(new byte[32])))
+                .run(context -> {
+                    assertThat(context).hasSingleBean(RestClient.Builder.class);
+                    assertThat(context).hasSingleBean(HttpToolExecutor.class);
+                    assertThat(context.getBean(HttpToolExecutor.class).toolType()).isEqualTo(ToolType.HTTP);
                 });
     }
 }
