@@ -12,6 +12,7 @@
         <module>ai-platform-file</module>
         <module>ai-platform-system</module>
         <module>ai-platform-ai</module>
+        <module>ai-platform-tool</module>
         <module>ai-platform-chat</module>
         <module>ai-platform-knowledge</module>
         <module>ai-platform-admin</module>
@@ -25,6 +26,7 @@
         <langchain4j.version>1.21.0</langchain4j.version>
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <sa-token.version>1.46.0</sa-token.version>
+        <mcp.version>0.18.3</mcp.version>
         <minio.version>8.6.0</minio.version>
         <pdfbox.version>3.0.5</pdfbox.version>
         <maven.compiler.release>17</maven.compiler.release>

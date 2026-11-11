@@ -7,6 +7,15 @@ ai:
   executor-max-pool-size: 16
   executor-queue-capacity: 200
 
+tool:
+  max-header-count: ${TOOL_MAX_HEADER_COUNT:32}
+  max-body-bytes: ${TOOL_MAX_BODY_BYTES:1048576}
+  max-response-bytes: ${TOOL_MAX_RESPONSE_BYTES:1048576}
+  default-connect-timeout: ${TOOL_DEFAULT_CONNECT_TIMEOUT:10}
+  default-read-timeout: ${TOOL_DEFAULT_READ_TIMEOUT:60}
+  max-timeout: ${TOOL_MAX_TIMEOUT:600}
+  allow-private-network: ${TOOL_ALLOW_PRIVATE_NETWORK:false}
+
 file:
   storage:
     type: minio

@@ -30,6 +30,16 @@ public enum ErrorCode {
     KNOWLEDGE_BASE_NOT_READY(HttpStatus.CONFLICT, "KNOWLEDGE_BASE_NOT_READY", "Knowledge base is not ready"),
     FILE_STORAGE_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "FILE_STORAGE_ERROR", "File storage service unavailable"),
     FILE_DELETE_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "FILE_DELETE_FAILED", "File deletion failed"),
+    TOOL_NOT_FOUND(HttpStatus.NOT_FOUND, "TOOL_NOT_FOUND", "Tool not found"),
+    TOOL_DISABLED(HttpStatus.CONFLICT, "TOOL_DISABLED", "Tool is disabled"),
+    TOOL_STALE(HttpStatus.CONFLICT, "TOOL_STALE", "Tool discovery snapshot is stale"),
+    TOOL_ARGUMENT_INVALID(HttpStatus.BAD_REQUEST, "TOOL_ARGUMENT_INVALID", "Tool arguments are invalid"),
+    TOOL_CONFIG_INVALID(HttpStatus.BAD_REQUEST, "TOOL_CONFIG_INVALID", "Tool configuration is invalid"),
+    TOOL_CONNECT_TIMEOUT(HttpStatus.BAD_GATEWAY, "TOOL_CONNECT_TIMEOUT", "Tool connection timed out"),
+    TOOL_READ_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "TOOL_READ_TIMEOUT", "Tool response timed out"),
+    TOOL_REMOTE_ERROR(HttpStatus.BAD_GATEWAY, "TOOL_REMOTE_ERROR", "Tool remote request failed"),
+    TOOL_DISCOVERY_FAILED(HttpStatus.BAD_GATEWAY, "TOOL_DISCOVERY_FAILED", "MCP tool discovery failed"),
+    TOOL_EXECUTION_FAILED(HttpStatus.BAD_GATEWAY, "TOOL_EXECUTION_FAILED", "Tool execution failed"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Internal server error");
 
     private final HttpStatus httpStatus;
