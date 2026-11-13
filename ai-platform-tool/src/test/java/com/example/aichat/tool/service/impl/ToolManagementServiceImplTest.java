@@ -68,11 +68,26 @@ class ToolManagementServiceImplTest {
         assertThat(result.id()).isEqualTo(7L);
         assertThat(result.toolCode()).isEqualTo("orders");
         assertThat(result.hasCredential()).isTrue();
+        assertThat(result.authType()).isEqualTo(ToolAuthType.BEARER);
+        assertThat(result.authHeaderName()).isNull();
         assertThat(result.httpConfig().get("url").asText()).isEqualTo("https://example.com/orders");
         ArgumentCaptor<ToolDefinition> captor = ArgumentCaptor.forClass(ToolDefinition.class);
         verify(mapper).insert(captor.capture());
         assertThat(captor.getValue().getCredentialCiphertext()).doesNotContain("secret-token");
         assertThat(captor.getValue().getStatus()).isZero();
+    }
+
+    @Test
+    void exposesApiKeyAuthenticationConfiguration() {
+        when(mapper.selectCount(any())).thenReturn(0L);
+        when(urlSafetyValidator.validate("https://example.com/orders"))
+                .thenReturn(URI.create("https://example.com/orders"));
+        when(mapper.insert(any(ToolDefinition.class))).thenAnswer(invocation -> 1);
+
+        var result = service.create(request(ToolAuthType.API_KEY, "X-Api-Key", "secret-token"));
+
+        assertThat(result.authType()).isEqualTo(ToolAuthType.API_KEY);
+        assertThat(result.authHeaderName()).isEqualTo("X-Api-Key");
     }
 
     @Test
@@ -98,11 +113,15 @@ class ToolManagementServiceImplTest {
     }
 
     private ToolUpsertRequest request(String credential) {
+        return request(ToolAuthType.BEARER, null, credential);
+    }
+
+    private ToolUpsertRequest request(ToolAuthType authType, String authHeaderName, String credential) {
         return new ToolUpsertRequest(
                 " orders ", "Orders", "Order lookup", ToolType.HTTP,
                 new HttpToolConfig("https://example.com/orders", ToolHttpMethod.POST,
                         Map.of("Accept", "application/json"), Map.of(),
                         new ObjectMapper().createObjectNode().put("id", "{{orderId}}")),
-                ToolAuthType.BEARER, null, credential, Map.of("X-Tenant", "demo"), null);
+                authType, authHeaderName, credential, Map.of("X-Tenant", "demo"), null);
     }
 }

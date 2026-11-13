@@ -150,7 +150,8 @@ public class ToolDiscoveryPersistenceServiceImpl implements ToolDiscoveryPersist
     private ToolManagementView toView(ToolDefinition tool) {
         return new ToolManagementView(tool.getId(), tool.getToolCode(), tool.getToolName(), tool.getDescription(),
                 tool.getToolType(), tool.getSource(), tool.getStatus(), tool.getAvailability(), tool.getMcpServerId(),
-                tool.getRemoteToolName(), null, parse(tool.getInputSchema()), false, tool.getCredentialVersion(),
+                tool.getRemoteToolName(), tool.getAuthType(), tool.getAuthHeaderName(),
+                null, parse(tool.getInputSchema()), false, tool.getCredentialVersion(),
                 tool.getCreateTime(), tool.getUpdateTime());
     }
 

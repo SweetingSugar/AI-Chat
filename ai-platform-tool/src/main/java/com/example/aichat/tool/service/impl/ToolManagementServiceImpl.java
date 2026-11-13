@@ -226,7 +226,8 @@ public class ToolManagementServiceImpl implements ToolManagementService {
         return new ToolManagementView(
                 tool.getId(), tool.getToolCode(), tool.getToolName(), tool.getDescription(), tool.getToolType(),
                 tool.getSource(), tool.getStatus(), tool.getAvailability(), tool.getMcpServerId(),
-                tool.getRemoteToolName(), httpConfig, parseSchema(tool.getInputSchema()),
+                tool.getRemoteToolName(), tool.getAuthType(), tool.getAuthHeaderName(), httpConfig,
+                parseSchema(tool.getInputSchema()),
                 StringUtils.hasText(tool.getCredentialCiphertext()) || StringUtils.hasText(tool.getSecretHeadersCiphertext()),
                 tool.getCredentialVersion(), tool.getCreateTime(), tool.getUpdateTime());
     }

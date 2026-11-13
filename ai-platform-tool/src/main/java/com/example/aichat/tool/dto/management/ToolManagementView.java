@@ -1,5 +1,6 @@
 package com.example.aichat.tool.dto.management;
 
+import com.example.aichat.tool.enums.ToolAuthType;
 import com.example.aichat.tool.enums.ToolAvailability;
 import com.example.aichat.tool.enums.ToolSource;
 import com.example.aichat.tool.enums.ToolType;
@@ -18,6 +19,8 @@ public record ToolManagementView(
         ToolAvailability availability,
         Long mcpServerId,
         String remoteToolName,
+        ToolAuthType authType,
+        String authHeaderName,
         JsonNode httpConfig,
         JsonNode inputSchema,
         boolean hasCredential,

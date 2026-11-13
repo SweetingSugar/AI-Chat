@@ -3,6 +3,7 @@ package com.example.aichat.tool.service.impl;
 import com.example.aichat.tool.dto.management.ToolDiscoveryResult;
 import com.example.aichat.tool.entity.ToolDefinition;
 import com.example.aichat.tool.entity.ToolMcpServer;
+import com.example.aichat.tool.enums.ToolAuthType;
 import com.example.aichat.tool.enums.ToolAvailability;
 import com.example.aichat.tool.enums.ToolSource;
 import com.example.aichat.tool.enums.ToolType;
@@ -53,6 +54,10 @@ class ToolDiscoveryPersistenceServiceImplTest {
         assertThat(snapshot.getSource()).isEqualTo(ToolSource.DISCOVERED);
         assertThat(snapshot.getStatus()).isZero();
         assertThat(snapshot.getAvailability()).isEqualTo(ToolAvailability.AVAILABLE);
+        assertThat(result.tools()).hasSize(1);
+        var view = result.tools().get(0);
+        assertThat(view.authType()).isEqualTo(ToolAuthType.NONE);
+        assertThat(view.authHeaderName()).isNull();
         verify(serverMapper).updateById(server);
     }
 
