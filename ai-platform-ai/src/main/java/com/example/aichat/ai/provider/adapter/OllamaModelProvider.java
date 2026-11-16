@@ -8,6 +8,8 @@ import com.example.aichat.ai.provider.AiModelConfigSnapshot;
 import com.example.aichat.ai.provider.ModelProvider;
 import com.example.aichat.ai.stream.AiStreamEvent;
 import com.example.aichat.ai.stream.LangChain4jStreamAdapter;
+import com.example.aichat.ai.tool.AiToolContext;
+import com.example.aichat.common.error.ErrorCode;
 import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -20,6 +22,16 @@ public class OllamaModelProvider implements ModelProvider {
     @Override
     public boolean supports(AiProviderType providerType) {
         return providerType == AiProviderType.OLLAMA;
+    }
+
+    @Override
+    public Flux<AiStreamEvent> stream(AiModelConfigSnapshot snapshot, List<AiMessageDTO> messages,
+                                      AiGenerationOptions options, AiToolContext toolContext) {
+        if (toolContext != null) {
+            return Flux.just(AiStreamEvent.error(ErrorCode.AI_TOOL_UNSUPPORTED.code(),
+                    ErrorCode.AI_TOOL_UNSUPPORTED.message()));
+        }
+        return stream(snapshot, messages, options);
     }
 
     @Override

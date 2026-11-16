@@ -36,6 +36,17 @@ public class AiRequestValidator {
                 }
             }
         }
+        if (request.toolCodes().size() > 20) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "At most 20 tool codes are allowed");
+        }
+        for (String toolCode : request.toolCodes()) {
+            if (toolCode == null || toolCode.isBlank()) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Tool code must not be blank");
+            }
+            if (toolCode.length() > 100) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Tool code is too long");
+            }
+        }
         AiGenerationOptions options = request.options();
         if (options != null && options.maxOutputTokens() != null && options.maxOutputTokens() <= 0)
             throw new IllegalArgumentException("maxOutputTokens must be positive");

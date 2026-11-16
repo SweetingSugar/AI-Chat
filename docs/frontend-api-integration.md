@@ -225,7 +225,8 @@ satoken: <tokenValue>
   "requestId": "client-generated-request-id",
   "temperature": 0.7,
   "topP": 0.9,
-  "maxOutputTokens": 2048
+  "maxOutputTokens": 2048,
+  "toolCodes": ["weather_current"]
 }
 ```
 
@@ -238,6 +239,7 @@ satoken: <tokenValue>
 | `temperature` | 否 | 0–2 |
 | `topP` | 否 | 0–1 |
 | `maxOutputTokens` | 否 | 1–100000；当前用于上下文预算，OpenAI 兼容适配器未将该值传入供应商客户端作为输出上限 |
+| `toolCodes` | 否 | 最多 20 个工具编码，每个最长 100 个字符；仅本次请求启用，重复编码会去重；工具执行过程不会新增 SSE 事件 |
 
 正常建立生成任务后，后端发送 `start`、零到多个 `delta`、`complete` 或 `failed` 事件；同一会话已有生成任务，或生成准备阶段发生异常时，可能直接只发送 `failed`。前一种场景的 SSE `errorCode` 为 `CHAT_GENERATION_IN_PROGRESS`，且 `taskId`、`assistantMessageId` 为 `null`。每个事件的 SSE `id` 均为请求 ID；`data` 结构如下。
 
@@ -277,7 +279,8 @@ data: {"type":"DELTA","taskId":50,"requestId":"8bf0f7e5-0a8f-4f9c-9a32-xxxxxxxxx
   "requestId": "retry-request-id",
   "temperature": 0.7,
   "topP": 0.9,
-  "maxOutputTokens": 2048
+  "maxOutputTokens": 2048,
+  "toolCodes": ["weather_current"]
 }
 ```
 

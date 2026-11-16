@@ -117,7 +117,7 @@ ai-platform-boot
 
 生成任务状态为 `RUNNING`、`SUCCESS`、`FAILED`、`INTERRUPTED`。运行中的任务以请求 ID 缓存在 `ChatGenerationTaskManager`，在流结束后清除。
 
-调用时，登录响应 `data` 中的 `tokenName` 与 `tokenValue` 应以同名请求头带入后续请求。创建会话后，可使用以下最小请求体发起对话；`modelId`、`requestId`、`temperature`、`topP`、`maxOutputTokens` 均为可选覆盖参数。
+调用时，登录响应 `data` 中的 `tokenName` 与 `tokenValue` 应以同名请求头带入后续请求。创建会话后，可使用以下最小请求体发起对话；`modelId`、`requestId`、`temperature`、`topP`、`maxOutputTokens`、`toolCodes` 均为可选覆盖参数。`toolCodes` 只启用本次请求明确指定的工具编码，最多 20 个且每个最长 100 个字符。
 
 ```http
 POST /api/chat/sessions/{sessionId}/stream

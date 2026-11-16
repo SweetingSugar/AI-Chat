@@ -6,6 +6,8 @@ ai:
   executor-core-pool-size: 4
   executor-max-pool-size: 16
   executor-queue-capacity: 200
+  max-tool-rounds: ${AI_MAX_TOOL_ROUNDS:8}
+  max-tool-result-bytes: ${AI_MAX_TOOL_RESULT_BYTES:65536}
 
 tool:
   max-header-count: ${TOOL_MAX_HEADER_COUNT:32}

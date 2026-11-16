@@ -5,4 +5,6 @@ import com.example.aichat.tool.dto.execution.ToolExecutionResult;
 
 public interface ToolExecutionService {
     ToolExecutionResult execute(ToolExecuteRequest request);
+
+    ToolExecutionResult executeAsUser(Long userId, ToolExecuteRequest request);
 }

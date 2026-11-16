@@ -1,10 +1,14 @@
 package com.example.aichat.tool.config;
 
 import com.example.aichat.ai.config.AiCredentialCipher;
+import com.example.aichat.tool.ai.HttpToolSchemaGenerator;
+import com.example.aichat.tool.ai.ToolAiToolProvider;
 import com.example.aichat.tool.executor.HttpToolExecutor;
 import com.example.aichat.tool.executor.McpClientFactory;
 import com.example.aichat.tool.executor.McpToolExecutor;
+import com.example.aichat.tool.mapper.ToolDefinitionMapper;
 import com.example.aichat.tool.service.McpServerManagementService;
+import com.example.aichat.tool.service.ToolExecutionService;
 import com.example.aichat.tool.validation.TemplateValueResolver;
 import com.example.aichat.tool.validation.ToolConfigCodec;
 import com.example.aichat.tool.validation.ToolCredentialHeaders;
@@ -34,6 +38,22 @@ public class ToolConfiguration {
     @Bean
     public ToolConfigCodec toolConfigCodec(ObjectMapper objectMapper) {
         return new ToolConfigCodec(objectMapper);
+    }
+
+    @Bean
+    public HttpToolSchemaGenerator httpToolSchemaGenerator(ObjectMapper objectMapper) {
+        return new HttpToolSchemaGenerator(objectMapper);
+    }
+
+    @Bean
+    public ToolAiToolProvider toolAiToolProvider(ToolDefinitionMapper toolMapper,
+                                                 ToolExecutionService executionService,
+                                                 McpServerManagementService serverService,
+                                                 ToolConfigCodec configCodec,
+                                                 HttpToolSchemaGenerator schemaGenerator,
+                                                 ObjectMapper objectMapper) {
+        return new ToolAiToolProvider(toolMapper, executionService, serverService, configCodec,
+                schemaGenerator, objectMapper);
     }
 
     @Bean

@@ -17,9 +17,10 @@ public record ChatRequestDTO(
         @Size(max = 64) String requestId,
         @DecimalMin("0.0") @DecimalMax("2.0") Double temperature,
         @DecimalMin("0.0") @DecimalMax("1.0") Double topP,
-        @Min(1) @Max(100_000) Integer maxOutputTokens) {
+        @Min(1) @Max(100_000) Integer maxOutputTokens,
+        @Size(max = 20) List<@Size(max = 100) String> toolCodes) {
     public ChatRequestDTO(String content, List<Long> fileIds, Long modelId, String requestId,
                           Double temperature, Double topP, Integer maxOutputTokens) {
-        this(content, fileIds, List.of(), modelId, requestId, temperature, topP, maxOutputTokens);
+        this(content, fileIds, List.of(), modelId, requestId, temperature, topP, maxOutputTokens, List.of());
     }
 }

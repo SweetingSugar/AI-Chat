@@ -1,5 +1,6 @@
 package com.example.aichat.tool.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.aichat.common.error.BusinessException;
 import com.example.aichat.common.error.ErrorCode;
@@ -50,6 +51,22 @@ public class ToolExecutionServiceImpl implements ToolExecutionService {
     @Override
     @Transactional
     public ToolExecutionResult execute(ToolExecuteRequest request) {
+        StpUtil.checkPermission("tool:execute");
+        return executeInternal(request);
+    }
+
+    @Override
+    @Transactional
+    public ToolExecutionResult executeAsUser(Long userId, ToolExecuteRequest request) {
+        java.util.concurrent.atomic.AtomicReference<ToolExecutionResult> result = new java.util.concurrent.atomic.AtomicReference<>();
+        StpUtil.switchTo(userId, () -> {
+            StpUtil.checkPermission("tool:execute");
+            result.set(executeInternal(request));
+        });
+        return result.get();
+    }
+
+    private ToolExecutionResult executeInternal(ToolExecuteRequest request) {
         CurrentUser user = currentUserProvider.requireCurrentUser();
         String requestId = StringUtils.hasText(request.requestId()) ? request.requestId().trim() : UUID.randomUUID().toString();
         ToolDefinition definition = null;

@@ -52,7 +52,7 @@ public class AiChatGatewayImpl implements AiChatGateway {
             AiGenerationOptions options = new AiGenerationOptions(command.modelId(), command.temperature(),
                     command.topP(), command.maxOutputTokens());
             AiChatRequest request = new AiChatRequest(command.requestId(), command.userId(), command.sessionId(),
-                    generation.userMessageId(), aiMessages, options);
+                    generation.userMessageId(), aiMessages, options, command.toolCodes());
             return aiChatService.stream(request);
         });
     }

@@ -17,11 +17,13 @@ import com.example.aichat.chat.service.ChatService;
 import com.example.aichat.chat.service.ChatSessionService;
 import com.example.aichat.chat.vo.ChatStreamEventVO;
 import com.example.aichat.common.error.BusinessException;
+import com.example.aichat.common.error.ErrorCode;
 import com.example.aichat.common.security.CurrentUser;
 import com.example.aichat.file.service.FileAccessService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -62,7 +64,7 @@ public class ChatServiceImpl implements ChatService {
                 .toList();
         ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, request.content(), fileIds, model.id,
                 requestId(request.requestId()), request.temperature(), request.topP(), request.maxOutputTokens(), null, null,
-                request.knowledgeBaseIds());
+                request.knowledgeBaseIds(), normalizeToolCodes(request.toolCodes()));
         return streamOrchestrator.stream(command, model);
     }
 
@@ -79,8 +81,31 @@ public class ChatServiceImpl implements ChatService {
         List<Long> knowledgeBaseIds = knowledgeService.findKnowledgeBaseIds(userMessage.id);
         ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, userMessage.content, List.of(), model.id,
                 requestId(request.requestId()), request.temperature(), request.topP(), request.maxOutputTokens(),
-                userMessage.id, source.id, knowledgeBaseIds);
+                userMessage.id, source.id, knowledgeBaseIds, normalizeToolCodes(request.toolCodes()));
         return regenerateOrchestrator.stream(command, model);
+    }
+
+    private List<String> normalizeToolCodes(List<String> toolCodes) {
+        if (toolCodes == null) {
+            return List.of();
+        }
+        List<String> normalized = new ArrayList<>();
+        for (String code : toolCodes) {
+            if (code == null || code.isBlank()) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Tool code must not be blank");
+            }
+            String value = code.trim();
+            if (value.length() > 100) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Tool code is too long");
+            }
+            if (!normalized.contains(value)) {
+                normalized.add(value);
+            }
+        }
+        if (normalized.size() > 20) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "At most 20 tool codes are allowed");
+        }
+        return List.copyOf(normalized);
     }
 
     private String requestId(String requestId) {
