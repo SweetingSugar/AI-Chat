@@ -60,7 +60,9 @@ public class ToolAiToolProvider implements AiToolProvider {
         if (codes.isEmpty()) {
             return new AiToolContext(userId, requestId, List.of(), this::execute);
         }
-        StpUtil.switchTo(userId, () -> StpUtil.checkPermission(EXECUTE_PERMISSION));
+        if (!StpUtil.hasPermission(userId, EXECUTE_PERMISSION)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
         List<ToolDefinition> definitions = toolMapper.selectList(new LambdaQueryWrapper<ToolDefinition>()
                 .in(ToolDefinition::getToolCode, codes));
         Map<String, ToolDefinition> byCode = definitions.stream()

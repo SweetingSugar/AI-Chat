@@ -1,5 +1,6 @@
 package com.example.aichat.tool.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.example.aichat.common.error.BusinessException;
 import com.example.aichat.common.error.ErrorCode;
 import com.example.aichat.common.security.CurrentUser;
@@ -23,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.MockedStatic;
 
 import java.util.List;
 import java.util.Map;
@@ -65,15 +67,17 @@ class ToolExecutionServiceImplTest {
         when(executor.execute(any(), any())).thenReturn(new ToolExecutionResult(
                 "client-1", "orders", ToolType.HTTP, true, 200, Map.of("ok", true), 12));
 
-        ToolExecutionResult result = service.execute(new ToolExecuteRequest("orders", Map.of("id", 1), "client-1"));
+        try (MockedStatic<StpUtil> ignored = org.mockito.Mockito.mockStatic(StpUtil.class)) {
+            ToolExecutionResult result = service.execute(new ToolExecuteRequest("orders", Map.of("id", 1), "client-1"));
 
-        assertThat(result.requestId()).isEqualTo("client-1");
-        ArgumentCaptor<com.example.aichat.tool.entity.ToolInvocationLog> captor =
-                ArgumentCaptor.forClass(com.example.aichat.tool.entity.ToolInvocationLog.class);
-        verify(logService).record(captor.capture());
-        assertThat(captor.getValue().getStatus()).isEqualTo(ToolInvocationStatus.SUCCESS);
-        assertThat(captor.getValue().getUserId()).isEqualTo(42L);
-        assertThat(captor.getValue().getErrorMessage()).isNull();
+            assertThat(result.requestId()).isEqualTo("client-1");
+            ArgumentCaptor<com.example.aichat.tool.entity.ToolInvocationLog> captor =
+                    ArgumentCaptor.forClass(com.example.aichat.tool.entity.ToolInvocationLog.class);
+            verify(logService).record(captor.capture());
+            assertThat(captor.getValue().getStatus()).isEqualTo(ToolInvocationStatus.SUCCESS);
+            assertThat(captor.getValue().getUserId()).isEqualTo(42L);
+            assertThat(captor.getValue().getErrorMessage()).isNull();
+        }
     }
 
     @Test
@@ -84,10 +88,12 @@ class ToolExecutionServiceImplTest {
         when(executor.toolType()).thenReturn(ToolType.HTTP);
         when(executor.execute(any(), any())).thenThrow(new BusinessException(ErrorCode.TOOL_REMOTE_ERROR, "remote failed"));
 
-        assertThatThrownBy(() -> service.execute(new ToolExecuteRequest("orders", Map.of("secret", "value"), null)))
-                .isInstanceOf(BusinessException.class)
-                .extracting(exception -> ((BusinessException) exception).errorCode())
-                .isEqualTo(ErrorCode.TOOL_REMOTE_ERROR);
+        try (MockedStatic<StpUtil> ignored = org.mockito.Mockito.mockStatic(StpUtil.class)) {
+            assertThatThrownBy(() -> service.execute(new ToolExecuteRequest("orders", Map.of("secret", "value"), null)))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting(exception -> ((BusinessException) exception).errorCode())
+                    .isEqualTo(ErrorCode.TOOL_REMOTE_ERROR);
+        }
 
         ArgumentCaptor<com.example.aichat.tool.entity.ToolInvocationLog> captor =
                 ArgumentCaptor.forClass(com.example.aichat.tool.entity.ToolInvocationLog.class);
@@ -104,10 +110,37 @@ class ToolExecutionServiceImplTest {
         when(toolMapper.selectOne(any())).thenReturn(definition);
         when(currentUserProvider.requireCurrentUser()).thenReturn(new CurrentUser(42L, "alice"));
 
-        assertThatThrownBy(() -> service.execute(new ToolExecuteRequest("orders", Map.of(), null)))
-                .isInstanceOf(BusinessException.class)
-                .extracting(exception -> ((BusinessException) exception).errorCode())
-                .isEqualTo(ErrorCode.TOOL_DISABLED);
+        try (MockedStatic<StpUtil> ignored = org.mockito.Mockito.mockStatic(StpUtil.class)) {
+            assertThatThrownBy(() -> service.execute(new ToolExecuteRequest("orders", Map.of(), null)))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting(exception -> ((BusinessException) exception).errorCode())
+                    .isEqualTo(ErrorCode.TOOL_DISABLED);
+        }
+    }
+
+    @Test
+    void executeAsUserUsesExplicitUserIdWithoutCurrentSaTokenContext() {
+        ToolDefinition definition = definition();
+        when(toolMapper.selectOne(any())).thenReturn(definition);
+        when(executor.toolType()).thenReturn(ToolType.HTTP);
+        when(executor.execute(any(), any())).thenReturn(new ToolExecutionResult(
+                "client-1", "orders", ToolType.HTTP, true, 200, Map.of("ok", true), 12));
+
+        try (MockedStatic<StpUtil> stp = org.mockito.Mockito.mockStatic(StpUtil.class)) {
+            stp.when(() -> StpUtil.hasPermission(42L, "tool:execute")).thenReturn(true);
+
+            ToolExecutionResult result = service.executeAsUser(
+                    42L, new ToolExecuteRequest("orders", Map.of("id", 1), "client-1"));
+
+            assertThat(result.success()).isTrue();
+            org.mockito.Mockito.verify(currentUserProvider, org.mockito.Mockito.never()).requireCurrentUser();
+            ArgumentCaptor<com.example.aichat.tool.entity.ToolInvocationLog> captor =
+                    ArgumentCaptor.forClass(com.example.aichat.tool.entity.ToolInvocationLog.class);
+            verify(logService).record(captor.capture());
+            assertThat(captor.getValue().getUserId()).isEqualTo(42L);
+            stp.verify(() -> StpUtil.hasPermission(42L, "tool:execute"));
+            stp.verifyNoMoreInteractions();
+        }
     }
 
     private ToolDefinition definition() {

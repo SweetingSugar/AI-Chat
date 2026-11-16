@@ -4,7 +4,6 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.aichat.common.error.BusinessException;
 import com.example.aichat.common.error.ErrorCode;
-import com.example.aichat.common.security.CurrentUser;
 import com.example.aichat.common.security.CurrentUserProvider;
 import com.example.aichat.tool.dto.execution.ToolExecuteRequest;
 import com.example.aichat.tool.dto.execution.ToolExecutionResult;
@@ -52,22 +51,19 @@ public class ToolExecutionServiceImpl implements ToolExecutionService {
     @Transactional
     public ToolExecutionResult execute(ToolExecuteRequest request) {
         StpUtil.checkPermission("tool:execute");
-        return executeInternal(request);
+        return executeInternal(currentUserProvider.requireCurrentUser().id(), request);
     }
 
     @Override
     @Transactional
     public ToolExecutionResult executeAsUser(Long userId, ToolExecuteRequest request) {
-        java.util.concurrent.atomic.AtomicReference<ToolExecutionResult> result = new java.util.concurrent.atomic.AtomicReference<>();
-        StpUtil.switchTo(userId, () -> {
-            StpUtil.checkPermission("tool:execute");
-            result.set(executeInternal(request));
-        });
-        return result.get();
+        if (!StpUtil.hasPermission(userId, "tool:execute")) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        return executeInternal(userId, request);
     }
 
-    private ToolExecutionResult executeInternal(ToolExecuteRequest request) {
-        CurrentUser user = currentUserProvider.requireCurrentUser();
+    private ToolExecutionResult executeInternal(Long userId, ToolExecuteRequest request) {
         String requestId = StringUtils.hasText(request.requestId()) ? request.requestId().trim() : UUID.randomUUID().toString();
         ToolDefinition definition = null;
         LocalDateTime startedAt = LocalDateTime.now();
@@ -99,18 +95,18 @@ public class ToolExecutionServiceImpl implements ToolExecutionService {
             ToolExecutionResult normalized = new ToolExecutionResult(requestId, definition.getToolCode(),
                     requestedType, result.success(), result.statusCode(), result.data(),
                     Duration.ofNanos(System.nanoTime() - startedNanos).toMillis());
-            recordSuccess(definition, user.id(), requestId, startedAt, normalized);
+            recordSuccess(definition, userId, requestId, startedAt, normalized);
             return normalized;
         } catch (BusinessException exception) {
             if (definition != null) {
-                recordFailure(definition, user.id(), requestId, startedAt, startedNanos, exception);
+                recordFailure(definition, userId, requestId, startedAt, startedNanos, exception);
             }
             throw exception;
         } catch (RuntimeException exception) {
             BusinessException failure = new BusinessException(ErrorCode.TOOL_EXECUTION_FAILED,
                     "Tool execution failed", exception);
             if (definition != null) {
-                recordFailure(definition, user.id(), requestId, startedAt, startedNanos, failure);
+                recordFailure(definition, userId, requestId, startedAt, startedNanos, failure);
             }
             throw failure;
         }
