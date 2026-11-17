@@ -44,7 +44,7 @@ class OpenAiModelProviderTest {
             AiModelConfigSnapshot snapshot = new AiModelConfigSnapshot(
                     1L, "OpenAI", AiProviderType.OPENAI,
                     "http://127.0.0.1:" + server.getAddress().getPort() + "/v1",
-                    "encrypted", 10, 10, 2L, "vision-model", 8192, 1024,
+                    "encrypted", 10, 10000, 2L, "vision-model", 8192, 1024,
                     BigDecimal.valueOf(0.2), BigDecimal.valueOf(0.3), 1, true);
             AiMessageDTO message = new AiMessageDTO(AiMessageRole.USER, "describe",
                     List.of(AiMessageContentDTO.image("image/png", new byte[]{1, 2})));
