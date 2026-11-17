@@ -186,6 +186,16 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 
 模型请求不会使用私有 MinIO URL。后续多轮追问会从历史用户消息的 `chat_message_file` 关系恢复附件；如果历史消息因上下文预算被裁剪，附件也会一并裁剪。当前阶段不实现 OCR 或扫描 PDF 页面识别。
 
+### 3.8 可用工具查询
+
+工具列表接口面向所有已登录用户开放，不要求管理员身份，也不要求 `tool:read` 或 `tool:execute` 权限。
+
+| 功能 | 接口 | 认证 / 权限 |
+| --- | --- | --- |
+| 查询可用工具 | `GET /api/tools/available` | 需要登录；不需要功能权限 |
+
+接口只返回未逻辑删除、已启用且 `availability = AVAILABLE` 的工具。MCP 工具还必须关联到已启用的 MCP 服务；停用、过期、关联服务不存在或已停用的工具会被过滤。返回字段只有 `toolCode`、`toolName`、`description`、`toolType` 和 `inputSchema`，不包含 URL、认证配置、凭证或管理状态。
+
 ## 4. 数据存储
 
 数据库结构由 Flyway 自动迁移，迁移脚本位于各模块的 `src/main/resources/db/migration`。

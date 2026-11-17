@@ -286,6 +286,39 @@ data: {"type":"DELTA","taskId":50,"requestId":"8bf0f7e5-0a8f-4f9c-9a32-xxxxxxxxx
 
 `messageId` 必填，必须是当前会话中属于当前用户的助手消息；其余字段的取值范围与 3.3 相同。重新生成会沿用源用户消息已经关联的文件，不需要再次提交 `fileIds`。
 
+### 3.6 可用工具
+
+`GET /api/tools/available`
+
+需要登录，但不需要管理员身份、`tool:read` 或 `tool:execute` 权限。请求必须携带登录响应中的动态 Token Header：
+
+```http
+GET /api/tools/available
+{{tokenName}}: {{tokenValue}}
+```
+
+成功时 `data` 为工具数组；没有符合条件的工具时返回空数组：
+
+```json
+[
+  {
+    "toolCode": "weather_current",
+    "toolName": "当前天气",
+    "description": "查询当前天气",
+    "toolType": "MCP",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "city": { "type": "string" }
+      },
+      "required": ["city"]
+    }
+  }
+]
+```
+
+后端只返回已启用且 `AVAILABLE` 的工具；MCP 工具的关联服务也必须启用。响应不会包含 HTTP 地址、认证头、凭证、MCP 服务 ID 或其他管理字段。未登录访问返回 `401 / UNAUTHENTICATED`。
+
 ## 4. 文件接口
 
 文件接口需要认证。文件对象存储在私有 MinIO bucket，前端只保存后端返回的 `fileId`，不要保存或拼接 MinIO object key。
