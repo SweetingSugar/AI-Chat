@@ -1,6 +1,9 @@
 package com.example.aichat.boot.config;
 
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.example.aichat.agent.mapper.AgentDefinitionMapper;
+import com.example.aichat.agent.mapper.AgentKnowledgeBaseMapper;
+import com.example.aichat.agent.mapper.AgentToolMapper;
 import com.example.aichat.knowledge.mapper.KnowledgeBaseMapper;
 import com.example.aichat.system.mapper.UserMapper;
 import com.example.aichat.tool.mapper.ToolDefinitionMapper;
@@ -55,6 +58,15 @@ class PostgresqlMybatisConfigurationTest {
                     .isSameAs(context.getBean("mysqlDataSource"));
             assertThat(context.getBean(UserMapper.class)).isNotNull();
             assertThat(context.getBean(ToolDefinitionMapper.class)).isNotNull();
+        });
+    }
+
+    @Test
+    void registersAgentMappersOnMySql() {
+        contextRunner.run(context -> {
+            assertThat(context.getBean(AgentDefinitionMapper.class)).isNotNull();
+            assertThat(context.getBean(AgentKnowledgeBaseMapper.class)).isNotNull();
+            assertThat(context.getBean(AgentToolMapper.class)).isNotNull();
         });
     }
 

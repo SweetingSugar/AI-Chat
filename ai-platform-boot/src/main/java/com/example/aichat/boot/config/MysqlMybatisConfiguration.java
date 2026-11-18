@@ -24,7 +24,8 @@ import javax.sql.DataSource;
                 "com.example.aichat.chat.mapper",
                 "com.example.aichat.admin.mapper",
                 "com.example.aichat.file.mapper",
-                "com.example.aichat.tool.mapper"
+                "com.example.aichat.tool.mapper",
+                "com.example.aichat.agent.mapper"
         },
         sqlSessionTemplateRef = "mysqlSqlSessionTemplate")
 public class MysqlMybatisConfiguration {
