@@ -13,5 +13,11 @@ public record ChatRegenerateDTO(@NotNull Long messageId, Long modelId, @Size(max
                                 @DecimalMin("0.0") @DecimalMax("2.0") Double temperature,
                                 @DecimalMin("0.0") @DecimalMax("1.0") Double topP,
                                 @Min(1) @Max(100_000) Integer maxOutputTokens,
-                                @Size(max = 20) List<@Size(max = 100) String> toolCodes) {
+                                @Size(max = 20) List<@Size(max = 100) String> toolCodes,
+                                Long agentId) {
+    public ChatRegenerateDTO(Long messageId, Long modelId, String requestId,
+                             Double temperature, Double topP, Integer maxOutputTokens,
+                             List<String> toolCodes) {
+        this(messageId, modelId, requestId, temperature, topP, maxOutputTokens, toolCodes, null);
+    }
 }

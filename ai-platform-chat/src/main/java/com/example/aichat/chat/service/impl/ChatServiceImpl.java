@@ -1,6 +1,8 @@
 package com.example.aichat.chat.service.impl;
 
 import com.example.aichat.ai.entity.AiModel;
+import com.example.aichat.agent.model.AgentRuntimeConfig;
+import com.example.aichat.agent.service.AgentRuntimeService;
 import com.example.aichat.chat.application.ChatRegenerateOrchestrator;
 import com.example.aichat.chat.application.ChatStreamOrchestrator;
 import com.example.aichat.chat.dto.ChatRegenerateDTO;
@@ -37,13 +39,15 @@ public class ChatServiceImpl implements ChatService {
     private final ChatKnowledgeService knowledgeService;
     private final ChatStreamOrchestrator streamOrchestrator;
     private final ChatRegenerateOrchestrator regenerateOrchestrator;
+    private final AgentRuntimeService agentRuntimeService;
 
     public ChatServiceImpl(ChatSessionService sessionService, ChatMessageService messageService,
                            ChatUserGateway userGateway, AiModelGateway modelGateway,
                            FileAccessService fileAccessService,
                            ChatKnowledgeService knowledgeService,
                            ChatStreamOrchestrator streamOrchestrator,
-                           ChatRegenerateOrchestrator regenerateOrchestrator) {
+                           ChatRegenerateOrchestrator regenerateOrchestrator,
+                           AgentRuntimeService agentRuntimeService) {
         this.sessionService = sessionService;
         this.messageService = messageService;
         this.userGateway = userGateway;
@@ -52,19 +56,26 @@ public class ChatServiceImpl implements ChatService {
         this.knowledgeService = knowledgeService;
         this.streamOrchestrator = streamOrchestrator;
         this.regenerateOrchestrator = regenerateOrchestrator;
+        this.agentRuntimeService = agentRuntimeService;
     }
 
     @Override
     public Flux<ChatStreamEventVO> stream(Long sessionId, ChatRequestDTO request) {
         CurrentUser user = userGateway.requireCurrentUser();
         var session = sessionService.requireOwned(sessionId);
-        AiModel model = modelGateway.resolve(request.modelId(), session.defaultModelId);
+        AgentRuntimeConfig agent = resolveAgent(user.id(), request.agentId());
+        AiModel model = agent == null
+                ? modelGateway.resolve(request.modelId(), session.defaultModelId)
+                : modelGateway.resolve(agent.modelId(), session.defaultModelId);
         List<Long> fileIds = fileAccessService.validateOwnedActiveFiles(user.id(), request.fileIds()).stream()
                 .map(file -> file.id())
                 .toList();
-        ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, request.content(), fileIds, model.id,
-                requestId(request.requestId()), request.temperature(), request.topP(), request.maxOutputTokens(), null, null,
-                request.knowledgeBaseIds(), normalizeToolCodes(request.toolCodes()));
+        List<Long> knowledgeBaseIds = agent == null ? request.knowledgeBaseIds() : agent.knowledgeBaseIds();
+        List<String> toolCodes = agent == null ? normalizeToolCodes(request.toolCodes()) : agent.toolCodes();
+        String systemPrompt = agent == null ? null : agent.systemPrompt();
+        ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, request.content(), fileIds,
+                model.id, requestId(request.requestId()), request.temperature(), request.topP(),
+                request.maxOutputTokens(), null, null, knowledgeBaseIds, toolCodes, systemPrompt);
         return streamOrchestrator.stream(command, model);
     }
 
@@ -77,12 +88,23 @@ public class ChatServiceImpl implements ChatService {
             throw new BusinessException(ChatErrorCode.INVALID_REGENERATE_MESSAGE.errorCode(), "Only an assistant message in this session can be regenerated");
         }
         ChatMessage userMessage = messageService.findPreviousUser(source);
-        AiModel model = modelGateway.resolve(request.modelId(), session.defaultModelId);
-        List<Long> knowledgeBaseIds = knowledgeService.findKnowledgeBaseIds(userMessage.id);
-        ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, userMessage.content, List.of(), model.id,
-                requestId(request.requestId()), request.temperature(), request.topP(), request.maxOutputTokens(),
-                userMessage.id, source.id, knowledgeBaseIds, normalizeToolCodes(request.toolCodes()));
+        AgentRuntimeConfig agent = resolveAgent(user.id(), request.agentId());
+        AiModel model = agent == null
+                ? modelGateway.resolve(request.modelId(), session.defaultModelId)
+                : modelGateway.resolve(agent.modelId(), session.defaultModelId);
+        List<Long> knowledgeBaseIds = agent == null
+                ? knowledgeService.findKnowledgeBaseIds(userMessage.id)
+                : agent.knowledgeBaseIds();
+        List<String> toolCodes = agent == null ? normalizeToolCodes(request.toolCodes()) : agent.toolCodes();
+        String systemPrompt = agent == null ? null : agent.systemPrompt();
+        ChatGenerationCommand command = new ChatGenerationCommand(user.id(), sessionId, userMessage.content, List.of(),
+                model.id, requestId(request.requestId()), request.temperature(), request.topP(),
+                request.maxOutputTokens(), userMessage.id, source.id, knowledgeBaseIds, toolCodes, systemPrompt);
         return regenerateOrchestrator.stream(command, model);
+    }
+
+    private AgentRuntimeConfig resolveAgent(Long userId, Long agentId) {
+        return agentId == null ? null : agentRuntimeService.resolve(userId, agentId);
     }
 
     private List<String> normalizeToolCodes(List<String> toolCodes) {

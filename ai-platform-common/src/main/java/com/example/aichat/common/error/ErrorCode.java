@@ -43,6 +43,12 @@ public enum ErrorCode {
     TOOL_REMOTE_ERROR(HttpStatus.BAD_GATEWAY, "TOOL_REMOTE_ERROR", "Tool remote request failed"),
     TOOL_DISCOVERY_FAILED(HttpStatus.BAD_GATEWAY, "TOOL_DISCOVERY_FAILED", "MCP tool discovery failed"),
     TOOL_EXECUTION_FAILED(HttpStatus.BAD_GATEWAY, "TOOL_EXECUTION_FAILED", "Tool execution failed"),
+    AGENT_NOT_FOUND(HttpStatus.NOT_FOUND, "AGENT_NOT_FOUND", "Agent not found"),
+    AGENT_DISABLED(HttpStatus.CONFLICT, "AGENT_DISABLED", "Agent is disabled"),
+    AGENT_MODEL_INVALID(HttpStatus.BAD_REQUEST, "AGENT_MODEL_INVALID", "Agent chat model is invalid"),
+    AGENT_KNOWLEDGE_BASE_INVALID(HttpStatus.BAD_REQUEST, "AGENT_KNOWLEDGE_BASE_INVALID",
+            "Agent knowledge base is invalid"),
+    AGENT_TOOL_INVALID(HttpStatus.BAD_REQUEST, "AGENT_TOOL_INVALID", "Agent tool is invalid"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Internal server error");
 
     private final HttpStatus httpStatus;

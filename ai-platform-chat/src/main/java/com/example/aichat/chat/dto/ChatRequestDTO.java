@@ -18,9 +18,24 @@ public record ChatRequestDTO(
         @DecimalMin("0.0") @DecimalMax("2.0") Double temperature,
         @DecimalMin("0.0") @DecimalMax("1.0") Double topP,
         @Min(1) @Max(100_000) Integer maxOutputTokens,
-        @Size(max = 20) List<@Size(max = 100) String> toolCodes) {
+        @Size(max = 20) List<@Size(max = 100) String> toolCodes,
+        Long agentId) {
+    public ChatRequestDTO {
+        fileIds = fileIds == null ? List.of() : List.copyOf(fileIds);
+        knowledgeBaseIds = knowledgeBaseIds == null ? List.of() : List.copyOf(knowledgeBaseIds);
+        toolCodes = toolCodes == null ? List.of() : List.copyOf(toolCodes);
+    }
+
     public ChatRequestDTO(String content, List<Long> fileIds, Long modelId, String requestId,
                           Double temperature, Double topP, Integer maxOutputTokens) {
-        this(content, fileIds, List.of(), modelId, requestId, temperature, topP, maxOutputTokens, List.of());
+        this(content, fileIds, List.of(), modelId, requestId, temperature, topP, maxOutputTokens,
+                List.of(), null);
+    }
+
+    public ChatRequestDTO(String content, List<Long> fileIds, List<Long> knowledgeBaseIds, Long modelId,
+                          String requestId, Double temperature, Double topP, Integer maxOutputTokens,
+                          List<String> toolCodes) {
+        this(content, fileIds, knowledgeBaseIds, modelId, requestId, temperature, topP, maxOutputTokens,
+                toolCodes, null);
     }
 }

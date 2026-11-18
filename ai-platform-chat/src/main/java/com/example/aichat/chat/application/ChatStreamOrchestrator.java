@@ -22,6 +22,7 @@ import com.example.aichat.knowledge.retrieval.KnowledgeRetrievalService;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -76,11 +77,18 @@ public class ChatStreamOrchestrator {
                 KnowledgeContext knowledgeContext = knowledgeRetrievalService.retrieve(command.userId(),
                         command.knowledgeBaseIds(), command.content());
                 knowledgeContextRef.set(knowledgeContext);
+                List<ChatMessagePair> systemMessages = new ArrayList<>();
+                if (command.systemPrompt() != null && !command.systemPrompt().isBlank()) {
+                    systemMessages.add(new ChatMessagePair(ChatMessageRole.SYSTEM,
+                            command.systemPrompt(), List.of()));
+                }
                 if (!knowledgeContext.sources().isEmpty()) {
                     knowledgeService.saveSources(generation.userMessageId(), knowledgeContext);
-                    context = java.util.stream.Stream.concat(
-                            java.util.stream.Stream.of(new ChatMessagePair(ChatMessageRole.SYSTEM,
-                                    knowledgeContext.prompt(), List.of())), context.stream()).toList();
+                    systemMessages.add(new ChatMessagePair(ChatMessageRole.SYSTEM,
+                            knowledgeContext.prompt(), List.of()));
+                }
+                if (!systemMessages.isEmpty()) {
+                    context = java.util.stream.Stream.concat(systemMessages.stream(), context.stream()).toList();
                 }
             } catch (RuntimeException exception) {
                 taskManager.remove(generation.requestId());

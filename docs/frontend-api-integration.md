@@ -226,7 +226,8 @@ satoken: <tokenValue>
   "temperature": 0.7,
   "topP": 0.9,
   "maxOutputTokens": 2048,
-  "toolCodes": ["weather_current"]
+  "toolCodes": ["weather_current"],
+  "agentId": 100
 }
 ```
 
@@ -240,6 +241,7 @@ satoken: <tokenValue>
 | `topP` | 否 | 0–1 |
 | `maxOutputTokens` | 否 | 1–100000；当前用于上下文预算，OpenAI 兼容适配器未将该值传入供应商客户端作为输出上限 |
 | `toolCodes` | 否 | 最多 20 个工具编码，每个最长 100 个字符；仅本次请求启用，重复编码会去重；工具执行过程不会新增 SSE 事件 |
+| `agentId` | 否 | 当前用户自己的已启用 Agent；传入后模型、知识库和工具由 Agent 配置决定，覆盖请求中的同名配置字段 |
 
 正常建立生成任务后，后端发送 `start`、零到多个 `delta`、`complete` 或 `failed` 事件；同一会话已有生成任务，或生成准备阶段发生异常时，可能直接只发送 `failed`。前一种场景的 SSE `errorCode` 为 `CHAT_GENERATION_IN_PROGRESS`，且 `taskId`、`assistantMessageId` 为 `null`。每个事件的 SSE `id` 均为请求 ID；`data` 结构如下。
 
@@ -280,11 +282,12 @@ data: {"type":"DELTA","taskId":50,"requestId":"8bf0f7e5-0a8f-4f9c-9a32-xxxxxxxxx
   "temperature": 0.7,
   "topP": 0.9,
   "maxOutputTokens": 2048,
-  "toolCodes": ["weather_current"]
+  "toolCodes": ["weather_current"],
+  "agentId": 100
 }
 ```
 
-`messageId` 必填，必须是当前会话中属于当前用户的助手消息；其余字段的取值范围与 3.3 相同。重新生成会沿用源用户消息已经关联的文件，不需要再次提交 `fileIds`。
+`messageId` 必填，必须是当前会话中属于当前用户的助手消息；其余字段的取值范围与 3.3 相同。重新生成会沿用源用户消息已经关联的文件，不需要再次提交 `fileIds`。传入 `agentId` 时，重新生成使用该 Agent 的固定模型、系统提示词、知识库和工具；不传时保持原有模型、知识库和工具参数行为。
 
 ### 3.6 可用工具
 
@@ -318,6 +321,45 @@ GET /api/tools/available
 ```
 
 后端只返回已启用且 `AVAILABLE` 的工具；MCP 工具的关联服务也必须启用。响应不会包含 HTTP 地址、认证头、凭证、MCP 服务 ID 或其他管理字段。未登录访问返回 `401 / UNAUTHENTICATED`。
+
+### 3.7 Agent
+
+Agent 接口需要登录，用户只能访问自己创建的 Agent，不需要管理员权限或额外功能权限。
+
+| 方法与路径 | 请求 | `data` |
+| --- | --- | --- |
+| `GET /api/agents?page=1&size=20` | 分页参数 | 当前用户的 Agent 分页结果 |
+| `GET /api/agents/{id}` | 无 | Agent 配置和绑定关系 |
+| `POST /api/agents` | 创建请求 | 新 Agent |
+| `PUT /api/agents/{id}` | 更新请求 | 更新后的 Agent |
+| `DELETE /api/agents/{id}` | 无 | `null` |
+| `PATCH /api/agents/{id}/status` | `{ "status": 0 }` 或 `{ "status": 1 }` | 更新后的 Agent |
+
+创建或更新请求：
+
+```json
+{
+  "name": "客服助手",
+  "description": "回答产品和售后问题",
+  "systemPrompt": "你是一个专业、准确的客服助手。",
+  "modelId": 3,
+  "knowledgeBaseIds": [10, 12],
+  "toolCodes": ["order_query"]
+}
+```
+
+`modelId` 必须是启用的聊天模型；知识库必须属于当前用户且可用；工具必须是当前可用的全局工具。Agent 最多绑定 10 个知识库和 20 个工具。资源在保存时和运行时都会校验，失效资源会使请求失败，不会被静默过滤。
+
+聊天请求传入 `agentId` 后，只需提交问题和可选附件：
+
+```json
+{
+  "content": "请查询我的订单状态",
+  "agentId": 100
+}
+```
+
+系统会使用 Agent 固定的模型和系统提示词，自动检索绑定知识库，并由模型按需调用绑定工具。工具实际执行仍要求当前用户拥有 `tool:execute` 权限。未传 `agentId` 时，聊天接口保持原有行为。
 
 ## 4. 文件接口
 

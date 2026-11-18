@@ -22,8 +22,11 @@
 ```text
 ai-platform-boot
  ├─ ai-platform-admin   后台 AI 配置、统计、文件与知识库查询接口
+ ├─ ai-platform-agent   用户私有 Agent 配置、资源绑定与运行时解析
  ├─ ai-platform-chat    会话、消息、流式生成
  ├─ ai-platform-file    MinIO 文件存储、元数据和附件关联能力
+ ├─ ai-platform-knowledge 用户知识库、文档索引与向量检索
+ ├─ ai-platform-tool    HTTP/MCP 工具管理、发现、执行与审计
  ├─ ai-platform-system  用户、登录、角色、权限
  ├─ ai-platform-ai      模型配置、供应商适配、AI 调用与审计
  └─ ai-platform-common  统一响应、异常、当前用户与基础配置
@@ -34,8 +37,11 @@ ai-platform-boot
 | `common` | 统一 API 响应、分页结果、业务异常、全局异常处理、Redis 序列化、当前用户抽象 | `ApiResponse`、`GlobalExceptionHandler`、`CurrentUserProvider` |
 | `system` | 注册登录、会话控制、用户、角色与权限管理 | `AuthController`、`UserController`、`RoleController`、`PermissionController` |
 | `ai` | AI 供应商/模型配置、凭证加密、模型路由、上下文裁剪、流式调用、调用日志与用量统计 | `DefaultAiChatService`、`AiModelRouter` |
-| `chat` | 聊天会话、消息历史、SSE 生成与重新生成、生成任务状态管理 | `ChatController`、`ChatStreamOrchestrator` |
+| `agent` | 用户私有 Agent 配置、知识库/工具绑定、资源校验和运行时解析 | `AgentController`、`AgentRuntimeService` |
+| `chat` | 聊天会话、消息历史、SSE 生成与重新生成 | `ChatController`、`ChatStreamOrchestrator` |
 | `file` | MinIO 文件上传、下载、删除、元数据、预签名 URL、聊天附件关联 | `FileController`、`AdminFileController`、`FileServiceImpl` |
+| `knowledge` | 用户知识库、文档解析、向量索引和相似度检索 | `KnowledgeBaseController`、`KnowledgeRetrievalService` |
+| `tool` | HTTP/MCP 工具管理、发现、统一执行和调用审计 | `ToolExecutionController`、`ToolAiToolProvider` |
 | `admin` | 供应商与模型后台管理、看板及用户/聊天/Token 统计、文件与知识库只读查询 | `AiProviderController`、`AiModelController`、`AdminStatisticsController`、`AdminFileController`、`AdminKnowledgeBaseController` |
 | `boot` | 聚合各模块并作为可执行 Spring Boot 应用启动 | `AiPlatformApplication` |
 
@@ -186,15 +192,24 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 
 模型请求不会使用私有 MinIO URL。后续多轮追问会从历史用户消息的 `chat_message_file` 关系恢复附件；如果历史消息因上下文预算被裁剪，附件也会一并裁剪。当前阶段不实现 OCR 或扫描 PDF 页面识别。
 
-### 3.8 可用工具查询
+### 3.9 用户 Agent
 
-工具列表接口面向所有已登录用户开放，不要求管理员身份，也不要求 `tool:read` 或 `tool:execute` 权限。
+Agent 面向所有已登录用户开放，每个 Agent 只属于创建者。用户可以创建、查询、修改、启停和删除自己的 Agent，不需要额外的管理员权限。
 
-| 功能 | 接口 | 认证 / 权限 |
-| --- | --- | --- |
-| 查询可用工具 | `GET /api/tools/available` | 需要登录；不需要功能权限 |
+Agent 固定一个已启用的聊天模型和系统提示词，并绑定创建者自己的知识库及管理员维护的全局工具。创建和更新时会校验全部资源；运行时会再次校验 Agent、模型、知识库和工具状态，资源失效时整个请求失败，不静默过滤资源。
 
-接口只返回未逻辑删除、已启用且 `availability = AVAILABLE` 的工具。MCP 工具还必须关联到已启用的 MCP 服务；停用、过期、关联服务不存在或已停用的工具会被过滤。返回字段只有 `toolCode`、`toolName`、`description`、`toolType` 和 `inputSchema`，不包含 URL、认证配置、凭证或管理状态。
+| 功能 | 接口 |
+| --- | --- |
+| 查询自己的 Agent | `GET /api/agents?page=&size=` |
+| 查看 Agent | `GET /api/agents/{id}` |
+| 创建 Agent | `POST /api/agents` |
+| 修改 Agent | `PUT /api/agents/{id}` |
+| 删除 Agent | `DELETE /api/agents/{id}` |
+| 启停 Agent | `PATCH /api/agents/{id}/status` |
+
+Agent 使用三张 MySQL 表保存配置和绑定关系：`agent_definition`、`agent_knowledge_base`、`agent_tool`。知识库绑定必须属于当前用户；工具仍由工具模块统一管理，实际执行继续检查 `tool:execute` 权限。
+
+在聊天请求中传入 `agentId` 后，模型、系统提示词、知识库和工具均由 Agent 配置决定，不能被请求中的同名字段覆盖。系统会自动检索绑定知识库，并由模型按需调用绑定工具。未传 `agentId` 的聊天请求保持原有行为。
 
 ## 4. 数据存储
 
@@ -207,6 +222,7 @@ data: {"type":"DELTA","taskId":101,"requestId":"3cf5c4e7-4b9b-4e9e-b8dc-xxxxxxxx
 | AI 配置 | `ai_provider`、`ai_model` | 供应商凭证与模型参数 |
 | AI 审计 | `ai_call_log` | 每次模型调用的状态、耗时和 Token 用量 |
 | 聊天 | `chat_session`、`chat_message`、`chat_generation_task`、`chat_message_file` | 会话、消息、生成任务和消息附件关联 |
+| Agent | `agent_definition`、`agent_knowledge_base`、`agent_tool` | 用户 Agent 配置及知识库/工具绑定 |
 | 文件 | `file_metadata` | MinIO 对象定位、文件名、类型、大小、状态和上传用户 |
 
 表之间通过 ID 字段形成业务关联，例如 `chat_session.user_id`、`chat_message.session_id`、`chat_message.generation_task_id`、`ai_model.provider_id`。迁移脚本为查询场景建立了会话列表、消息顺序、任务状态、调用日志和统计时间范围等索引。
