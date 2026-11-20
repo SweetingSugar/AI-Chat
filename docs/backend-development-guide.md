@@ -42,7 +42,7 @@ ai-platform-boot
 | `file` | MinIO 文件上传、下载、删除、元数据、预签名 URL、聊天附件关联 | `FileController`、`AdminFileController`、`FileServiceImpl` |
 | `knowledge` | 用户知识库、文档解析、向量索引和相似度检索 | `KnowledgeBaseController`、`KnowledgeRetrievalService` |
 | `tool` | HTTP/MCP 工具管理、发现、统一执行和调用审计 | `ToolExecutionController`、`ToolAiToolProvider` |
-| `admin` | 供应商与模型后台管理、看板及用户/聊天/Token 统计、文件与知识库只读查询 | `AiProviderController`、`AiModelController`、`AdminStatisticsController`、`AdminFileController`、`AdminKnowledgeBaseController` |
+| `admin` | 供应商与模型后台管理、看板及用户/聊天/Token 统计、文件、知识库和 Agent 只读查询 | `AiProviderController`、`AiModelController`、`AdminStatisticsController`、`AdminFileController`、`AdminKnowledgeBaseController`、`AdminAgentController` |
 | `boot` | 聚合各模块并作为可执行 Spring Boot 应用启动 | `AiPlatformApplication` |
 
 ## 3. 已实现业务能力
@@ -211,6 +211,12 @@ Agent 使用三张 MySQL 表保存配置和绑定关系：`agent_definition`、`
 
 在聊天请求中传入 `agentId` 后，模型、系统提示词、知识库和工具均由 Agent 配置决定，不能被请求中的同名字段覆盖。系统会自动检索绑定知识库，并由模型按需调用绑定工具。未传 `agentId` 的聊天请求保持原有行为。
 
+管理员 Agent 查询由 `ai-platform-admin` 暴露，使用 `agent:read` 权限，只读返回所有未逻辑删除的 Agent（包含启用和禁用状态）及其所属 `userId`、配置和绑定关系。管理员查询不重新校验绑定资源，也不返回工具凭据或其他敏感配置；`V16__admin_agent_permission.sql` 只创建权限，不自动绑定角色。
+
+| 功能 | 接口 | 所需权限 |
+| --- | --- | --- |
+| 管理员 Agent 列表 | `GET /api/admin/agents?page=&size=` | `agent:read` |
+| 管理员 Agent 详情 | `GET /api/admin/agents/{id}` | `agent:read` |
 ## 4. 数据存储
 
 数据库结构由 Flyway 自动迁移，迁移脚本位于各模块的 `src/main/resources/db/migration`。

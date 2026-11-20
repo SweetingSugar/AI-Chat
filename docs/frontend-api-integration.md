@@ -484,6 +484,35 @@ AI 附件相关错误码如下：
 }
 ```
 
+### 4.6 管理员 Agent 接口
+
+管理员 Agent 接口需要 `agent:read` 权限，只读查询全部未逻辑删除的 Agent，包含启用和禁用状态。分页 `page` 默认 1、`size` 默认 20，服务端将 `page` 限制为至少 1，将 `size` 限制在 1–100。
+
+| 方法与路径 | 权限 | 说明 |
+| --- | --- | --- |
+| `GET /api/admin/agents?page=1&size=20` | `agent:read` | 分页查询全部用户 Agent |
+| `GET /api/admin/agents/{id}` | `agent:read` | 查询 Agent 详情和绑定关系 |
+
+管理员 Agent 响应包含所属用户 `userId`、Agent 基本配置、`knowledgeBaseIds`、`toolCodes`、`status`、`createTime` 和 `updateTime`。例如：
+
+```json
+{
+  "id": 100,
+  "userId": 7,
+  "name": "客服助手",
+  "description": "回答产品和售后问题",
+  "systemPrompt": "你是一个专业、准确的客服助手。",
+  "modelId": 3,
+  "knowledgeBaseIds": [10, 12],
+  "toolCodes": ["order_query"],
+  "status": 1,
+  "createTime": "2026-11-20T10:00:00",
+  "updateTime": "2026-11-20T10:00:00"
+}
+```
+
+已删除 Agent 不会返回；不存在的详情返回 `AGENT_NOT_FOUND`。管理员查看不重新校验绑定资源，响应不包含工具凭据或其他敏感配置。
+
 ## 5. 后台用户、角色与权限
 
 本节接口均需认证，并需要表中列出的权限码。用户接口返回的用户对象与 2.1 一致；角色、权限列表与详情均返回实体字段。

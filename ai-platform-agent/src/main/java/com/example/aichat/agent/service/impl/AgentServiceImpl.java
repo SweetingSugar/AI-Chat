@@ -1,6 +1,7 @@
 package com.example.aichat.agent.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.aichat.agent.dto.AgentStatusRequest;
 import com.example.aichat.agent.dto.AgentUpsertRequest;
 import com.example.aichat.agent.entity.AgentDefinition;
@@ -10,6 +11,7 @@ import com.example.aichat.agent.mapper.AgentDefinitionMapper;
 import com.example.aichat.agent.mapper.AgentKnowledgeBaseMapper;
 import com.example.aichat.agent.mapper.AgentToolMapper;
 import com.example.aichat.agent.service.AgentService;
+import com.example.aichat.agent.vo.AgentAdminVO;
 import com.example.aichat.agent.vo.AgentVO;
 import com.example.aichat.ai.entity.AiModel;
 import com.example.aichat.ai.service.AiModelService;
@@ -24,8 +26,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class AgentServiceImpl implements AgentService {
@@ -75,6 +80,31 @@ public class AgentServiceImpl implements AgentService {
     @Override
     public AgentVO get(Long userId, Long agentId) {
         return toView(requireOwned(userId, agentId));
+    }
+
+    @Override
+    public PageResult<AgentAdminVO> adminPage(int page, int size) {
+        int current = Math.max(page, 1);
+        int pageSize = Math.min(Math.max(size, 1), 100);
+        Page<AgentDefinition> result = agentMapper.selectPage(new Page<>(current, pageSize),
+                new LambdaQueryWrapper<AgentDefinition>()
+                        .orderByDesc(AgentDefinition::getUpdateTime)
+                        .orderByDesc(AgentDefinition::getId));
+        List<Long> agentIds = result.getRecords().stream().map(AgentDefinition::getId).toList();
+        Map<Long, List<Long>> knowledgeBaseIdsByAgent = loadKnowledgeBaseIds(agentIds);
+        Map<Long, List<String>> toolCodesByAgent = loadToolCodes(agentIds);
+        return PageResult.from(result, agent -> toAdminView(agent,
+                knowledgeBaseIdsByAgent.getOrDefault(agent.getId(), List.of()),
+                toolCodesByAgent.getOrDefault(agent.getId(), List.of())));
+    }
+
+    @Override
+    public AgentAdminVO adminGet(Long agentId) {
+        AgentDefinition agent = agentMapper.selectById(agentId);
+        if (agent == null) {
+            throw new BusinessException(ErrorCode.AGENT_NOT_FOUND);
+        }
+        return toAdminView(agent);
     }
 
     @Override
@@ -204,6 +234,53 @@ public class AgentServiceImpl implements AgentService {
                 agent.getModelId(), knowledgeBindings.stream().map(AgentKnowledgeBase::getKnowledgeBaseId).toList(),
                 toolBindings.stream().map(AgentTool::getToolCode).toList(), agent.getStatus(),
                 agent.getCreateTime(), agent.getUpdateTime());
+    }
+
+    private AgentAdminVO toAdminView(AgentDefinition agent) {
+        List<AgentKnowledgeBase> knowledgeBindings = agentKnowledgeBaseMapper.selectList(
+                new LambdaQueryWrapper<AgentKnowledgeBase>()
+                        .eq(AgentKnowledgeBase::getAgentId, agent.getId())
+                        .orderByAsc(AgentKnowledgeBase::getId));
+        List<AgentTool> toolBindings = agentToolMapper.selectList(
+                new LambdaQueryWrapper<AgentTool>()
+                        .eq(AgentTool::getAgentId, agent.getId())
+                        .orderByAsc(AgentTool::getId));
+        return toAdminView(agent,
+                knowledgeBindings.stream().map(AgentKnowledgeBase::getKnowledgeBaseId).toList(),
+                toolBindings.stream().map(AgentTool::getToolCode).toList());
+    }
+
+    private AgentAdminVO toAdminView(AgentDefinition agent, List<Long> knowledgeBaseIds,
+                                     List<String> toolCodes) {
+        return new AgentAdminVO(agent.getId(), agent.getUserId(), agent.getName(), agent.getDescription(),
+                agent.getSystemPrompt(), agent.getModelId(), knowledgeBaseIds, toolCodes, agent.getStatus(),
+                agent.getCreateTime(), agent.getUpdateTime());
+    }
+
+    private Map<Long, List<Long>> loadKnowledgeBaseIds(List<Long> agentIds) {
+        if (agentIds.isEmpty()) {
+            return Map.of();
+        }
+        return agentKnowledgeBaseMapper.selectList(new LambdaQueryWrapper<AgentKnowledgeBase>()
+                        .in(AgentKnowledgeBase::getAgentId, agentIds)
+                        .orderByAsc(AgentKnowledgeBase::getAgentId)
+                        .orderByAsc(AgentKnowledgeBase::getId))
+                .stream()
+                .collect(Collectors.groupingBy(AgentKnowledgeBase::getAgentId, LinkedHashMap::new,
+                        Collectors.mapping(AgentKnowledgeBase::getKnowledgeBaseId, Collectors.toList())));
+    }
+
+    private Map<Long, List<String>> loadToolCodes(List<Long> agentIds) {
+        if (agentIds.isEmpty()) {
+            return Map.of();
+        }
+        return agentToolMapper.selectList(new LambdaQueryWrapper<AgentTool>()
+                        .in(AgentTool::getAgentId, agentIds)
+                        .orderByAsc(AgentTool::getAgentId)
+                        .orderByAsc(AgentTool::getId))
+                .stream()
+                .collect(Collectors.groupingBy(AgentTool::getAgentId, LinkedHashMap::new,
+                        Collectors.mapping(AgentTool::getToolCode, Collectors.toList())));
     }
 
     private record NormalizedRequest(String name, String description, String systemPrompt, Long modelId,

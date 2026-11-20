@@ -1,5 +1,6 @@
 package com.example.aichat.agent.service.impl;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.aichat.ai.entity.AiModel;
 import com.example.aichat.ai.service.AiModelService;
 import com.example.aichat.common.error.BusinessException;
@@ -16,7 +17,9 @@ import com.example.aichat.agent.entity.AgentTool;
 import com.example.aichat.agent.mapper.AgentDefinitionMapper;
 import com.example.aichat.agent.mapper.AgentKnowledgeBaseMapper;
 import com.example.aichat.agent.mapper.AgentToolMapper;
+import com.example.aichat.agent.vo.AgentAdminVO;
 import com.example.aichat.agent.vo.AgentVO;
+import com.example.aichat.common.api.PageResult;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +38,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -138,6 +142,76 @@ class AgentServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting(error -> ((BusinessException) error).errorCode())
                 .isEqualTo(ErrorCode.RESOURCE_CONFLICT);
+    }
+
+    @Test
+    void adminPageReturnsAgentsAcrossUsersWithAdminView() {
+        AgentDefinition newest = existingAgent(101L, 7L);
+        newest.setName("Newest");
+        newest.setUpdateTime(LocalDateTime.of(2026, 11, 20, 12, 0));
+        AgentDefinition older = existingAgent(100L, 8L);
+        older.setName("Older");
+        older.setUpdateTime(LocalDateTime.of(2026, 11, 19, 12, 0));
+        Page<AgentDefinition> page = new Page<>(1, 20);
+        page.setRecords(List.of(newest, older));
+        page.setTotal(2L);
+        when(agentMapper.selectPage(any(), any())).thenReturn(page);
+        when(agentKnowledgeBaseMapper.selectList(any())).thenReturn(List.of());
+        when(agentToolMapper.selectList(any())).thenReturn(List.of());
+
+        PageResult<AgentAdminVO> result = service.adminPage(1, 20);
+
+        assertThat(result.total()).isEqualTo(2);
+        assertThat(result.records()).extracting(AgentAdminVO::id).containsExactly(101L, 100L);
+        assertThat(result.records()).extracting(AgentAdminVO::userId).containsExactly(7L, 8L);
+        verifyNoInteractions(modelService, knowledgeBaseRepository, toolQueryService);
+    }
+
+    @Test
+    void adminPageNormalizesPageAndSize() {
+        Page<AgentDefinition> page = new Page<>(1, 100);
+        page.setRecords(List.of(existingAgent(101L, 7L)));
+        page.setTotal(1L);
+        when(agentMapper.selectPage(any(), any())).thenReturn(page);
+        when(agentKnowledgeBaseMapper.selectList(any())).thenReturn(List.of());
+        when(agentToolMapper.selectList(any())).thenReturn(List.of());
+
+        PageResult<AgentAdminVO> result = service.adminPage(0, 1000);
+
+        assertThat(result.current()).isEqualTo(1);
+        assertThat(result.size()).isEqualTo(100);
+        assertThat(result.pages()).isEqualTo(1);
+    }
+
+    @Test
+    void adminGetReturnsBindingsAndDoesNotValidateResources() {
+        AgentDefinition agent = existingAgent(100L, 8L);
+        when(agentMapper.selectById(100L)).thenReturn(agent);
+        AgentKnowledgeBase baseBinding = bindingBase(11L);
+        baseBinding.setId(1L);
+        AgentTool toolBinding = bindingTool("order_query");
+        toolBinding.setId(2L);
+        when(agentKnowledgeBaseMapper.selectList(any())).thenReturn(List.of(baseBinding));
+        when(agentToolMapper.selectList(any())).thenReturn(List.of(toolBinding));
+
+        AgentAdminVO result = service.adminGet(100L);
+
+        assertThat(result.userId()).isEqualTo(8L);
+        assertThat(result.knowledgeBaseIds()).containsExactly(11L);
+        assertThat(result.toolCodes()).containsExactly("order_query");
+        verifyNoInteractions(modelService, knowledgeBaseRepository, toolQueryService);
+    }
+
+    @Test
+    void adminGetTreatsMissingAgentAsNotFound() {
+        when(agentMapper.selectById(999L)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.adminGet(999L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(error -> ((BusinessException) error).errorCode())
+                .isEqualTo(ErrorCode.AGENT_NOT_FOUND);
+        verify(agentKnowledgeBaseMapper, never()).selectList(any());
+        verify(agentToolMapper, never()).selectList(any());
     }
 
     private AgentUpsertRequest request(Long modelId, List<Long> knowledgeBaseIds, List<String> toolCodes) {
